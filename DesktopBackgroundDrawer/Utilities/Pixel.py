@@ -1,3 +1,9 @@
+'''
+Created on Mar 7, 2014
+
+@author: tdeith
+'''
+
 from Colours import Colour
 
 class Pixel(object):
@@ -10,3 +16,4 @@ class Pixel(object):
         self.X, self.Y = x,y
         self.Colour = colour
         self.Neighbours = neighbours
+        self.QueueIndex = -1

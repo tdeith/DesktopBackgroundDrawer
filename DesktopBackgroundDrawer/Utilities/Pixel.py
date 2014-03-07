@@ -7,5 +7,6 @@ class Pixel(object):
     '''
 
     def __init__(self, x = 0, y = 0, colour = Colour(), neighbours=[]):
-        
-                
+        self.X, self.Y = x,y
+        self.Colour = colour
+        self.Neighbours = neighbours

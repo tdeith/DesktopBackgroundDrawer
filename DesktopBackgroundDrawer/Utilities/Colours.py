@@ -6,8 +6,6 @@ Created on Mar 7, 2014
 
 class Colour():
     
-    R, G, B = 0,0,0
-    
     # Initalize a new colour. Can include RGB tuple as parameter.
     def __init__(self, R = 0, G = 0, B = 0):
         try:

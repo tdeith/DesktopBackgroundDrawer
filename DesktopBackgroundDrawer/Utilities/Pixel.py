@@ -17,3 +17,5 @@ class Pixel(object):
         self.Colour = colour
         self.Neighbours = neighbours
         self.QueueIndex = -1
+        
+    

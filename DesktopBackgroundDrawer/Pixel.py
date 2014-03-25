@@ -21,6 +21,6 @@ class Pixel(object):
         
     def UpdateTarget(self, nextColour):
         (self.TargetColour.R, self.TargetColour.G, self.TargetColour.B) = ((self.TargetColour.R * self.CompletedNeighbours + nextColour.R)/(self.CompletedNeighbours + 1),
-                                                                            (self.TargetColour.G * self.CompletedNeighbours + nextColour.G)/(self.CompletedNeighbours + 1),
-                                                                            (self.TargetColour.B * self.CompletedNeighbours + nextColour.B)/(self.CompletedNeighbours + 1))
+                                                                           (self.TargetColour.G * self.CompletedNeighbours + nextColour.G)/(self.CompletedNeighbours + 1),
+                                                                           (self.TargetColour.B * self.CompletedNeighbours + nextColour.B)/(self.CompletedNeighbours + 1))
         self.CompletedNeighbours += 1

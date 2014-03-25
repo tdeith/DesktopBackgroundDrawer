@@ -4,19 +4,40 @@ Created on Mar 10, 2014
 @author: tdeith
 '''
 
-from Colours import *
-from Pixel import *
-from PixelQueue import *
+from Colour import *            # @UnusedWildImport
+from Pixel import *             # @UnusedWildImport
+from PixelList import *         # @UnusedWildImport
+from datetime import datetime
+from random import randint
 
 if __name__ == '__main__':
     
     # StartTime = now
+    StartTime = datetime.now()
+    
     
     # Set resolution, set number of bits, check that number of bits is big enough for resolution
+    colourBits = 6
+    width = 512
+    height = 512
     
+    assert (width * height <= 2**(colourBits * 3))
+
     # Initialize the list of colours to be placed
+    # TODO: Make this a better data structure for finding best neighbours. Please. Please.
+    
+    ColoursUsedTable = [[[False for n in xrange(2**colourBits)]\
+                                for n in xrange(2**colourBits)]\
+                                for n in xrange(2**colourBits)]
     
     # Insert one pixel from the list to the image in a random spot - place neighbours in PixelQueue
+    image = PixelList(width, height)
+    
+    (RandR, RandG, RandB) = (randint(0,2**colourBits-1),
+                             randint(0,2**colourBits-1),
+                             randint(0,2**colourBits-1))
+    
+    image[randint(0,width-1)][randint(0,height-1)].Colour = Colour(RandR, RandG, RandB)
     
     ''' Logic 1: Requires that PixelQueue is a set or list!!!!
     
@@ -48,8 +69,7 @@ if __name__ == '__main__':
     
     '''
     
-    '''Logic 2: 
-    
+    '''
     While PixelQueue is not empty
         BestSuitability = big
         
@@ -64,7 +84,5 @@ if __name__ == '__main__':
         Pixel.Colour = IdealColour
         
         Pixels.AddNeighbours(x,y)
-        
-    
     '''
-    return
+    print "Done!"

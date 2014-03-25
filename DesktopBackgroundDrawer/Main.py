@@ -37,7 +37,7 @@ if __name__ == '__main__':
         IdealPixel.colour = colour
         
         pixel.UpdateNeighbours                                            O(p)
-        PixelsCompleted[(pixel.x,pixel.y)]=IdealPixel
+        PixelsCompleted[pixel.x][pixel.y]=IdealPixel
         
             
     O(p*n) = O(n^1.5)   :    n ~= p^2
@@ -52,10 +52,19 @@ if __name__ == '__main__':
     
     While PixelQueue is not empty
         BestSuitability = big
-        for each colour in list
-            CurrentSuitability = some function of RGB values               O(1)
-            If CurrentSuitability < BestSuitability                        O(1)
-            IdealPixel = pixel                                             O(1)
+        
+        for each colour in list                                            O(n)
+            CurrentSuitability = some function of RGB values
+           CurrentSuitability = some function of RGB values               
+           If ( CurrentSuitability < BestSuitability ||
+               (CurrentSuitability == BestSuitability &&
+                SomeOtherFactorMakesThisPixelPreferedOverTheOtherOne)):
+               IdealPixel = pixel                                         
+        colourList.remove(IdealColour)                                     O(p)
+        Pixel.Colour = IdealColour
+        
+        Pixels.AddNeighbours(x,y)
+        
     
     '''
     return

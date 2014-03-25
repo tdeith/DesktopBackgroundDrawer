@@ -4,7 +4,7 @@ Created on Mar 7, 2014
 @author: tdeith
 '''
 
-from Colours import Colour
+from Colour import Colour
 
 class Pixel(object):
     '''
@@ -12,10 +12,15 @@ class Pixel(object):
     the pixel's colour, and pixel's location.  
     '''
 
-    def __init__(self, x = 0, y = 0, colour = Colour(), neighbours=[]):
+    def __init__(self, x = 0, y = 0, colour = Colour(), targetColour=Colour()):
         self.X, self.Y = x,y
         self.Colour = colour
-        self.Neighbours = neighbours
+        self.TargetColour = targetColour
         self.QueueIndex = -1
+        self.CompletedNeighbours = 0
         
-    
+    def UpdateTarget(self, nextColour):
+        (self.TargetColour.R, self.TargetColour.G, self.TargetColour.B) = ((self.TargetColour.R * self.CompletedNeighbours + nextColour.R)/(self.CompletedNeighbours + 1),
+                                                                            (self.TargetColour.G * self.CompletedNeighbours + nextColour.G)/(self.CompletedNeighbours + 1),
+                                                                            (self.TargetColour.B * self.CompletedNeighbours + nextColour.B)/(self.CompletedNeighbours + 1))
+        self.CompletedNeighbours += 1

@@ -9,6 +9,9 @@ from Pixel import *             # @UnusedWildImport
 from PixelList import *         # @UnusedWildImport
 from datetime import datetime
 from random import randint
+from xmlrpclib import MAXINT
+import png 
+import numpy
 
 if __name__ == '__main__':
     
@@ -18,10 +21,12 @@ if __name__ == '__main__':
     
     # Set resolution, set number of bits, check that number of bits is big enough for resolution
     colourBits = 6
-    width = 512
-    height = 512
+    width = 100 
+    height = 100
     
     assert (width * height <= 2**(colourBits * 3))
+    
+    print "a", datetime.now() - StartTime
 
     # Initialize the list of colours to be placed
     # TODO: Make this a better data structure for finding best neighbours. Please. Please.
@@ -30,6 +35,8 @@ if __name__ == '__main__':
                                 for n in xrange(2**colourBits)]\
                                 for n in xrange(2**colourBits)]
     
+    print "b", datetime.now() - StartTime
+    
     # Insert one pixel from the list to the image in a random spot - place neighbours in PixelQueue
     image = PixelList(width, height)
     
@@ -37,7 +44,17 @@ if __name__ == '__main__':
                              randint(0,2**colourBits-1),
                              randint(0,2**colourBits-1))
     
-    image[randint(0,width-1)][randint(0,height-1)].Colour = Colour(RandR, RandG, RandB)
+    print "c", datetime.now() - StartTime
+    
+    (startx, starty) = (randint(0,width-1),randint(0,height-1))
+    
+    print startx, starty, RandR, RandG, RandB
+    
+    image[startx][starty].Colour = Colour(RandR, RandG, RandB)
+    image.UpdateNeighbours(startx, starty)
+    ColoursUsedTable[RandR][RandG][RandB] = True
+    
+    print "d", datetime.now() - StartTime
     
     ''' Logic 1: Requires that PixelQueue is a set or list!!!!
     
@@ -69,20 +86,32 @@ if __name__ == '__main__':
     
     '''
     
-    '''
-    While PixelQueue is not empty
-        BestSuitability = big
+    i = 1
+    
+    for pixel in image.NextPixel():
+        lookRange = int(2 + 2**colourBits*(i/(width*height))**2)
+        BestSuitability = MAXINT
+        for R in range(max(0,pixel.TargetColour.R-lookRange),min(2**colourBits-1,pixel.TargetColour.R+lookRange)):
+            if (list(sum(ColoursUsedTable[R],[])).count(False) == 0):continue
+            for G in range(max(0,pixel.TargetColour.G-lookRange),min(2**colourBits-1,pixel.TargetColour.G+lookRange)):
+                if (ColoursUsedTable[R][G].count(False) == 0):continue
+                for B in range(max(0,pixel.TargetColour.B-lookRange),min(2**colourBits-1,pixel.TargetColour.B+lookRange)):
+                    if (ColoursUsedTable[R][G][B]):continue
+                    CurrentSuitability = pixel.TargetColour.GetDist((R,G,B))
+                    if ( CurrentSuitability < BestSuitability ):
+                        IdealColour = Colour(R,G,B)                                         
+        try:
+            ColoursUsedTable[IdealColour.R][IdealColour.G][IdealColour.B] = True
+        except:
+            pass
         
-        for each colour in list                                            O(n)
-            CurrentSuitability = some function of RGB values
-           CurrentSuitability = some function of RGB values               
-           If ( CurrentSuitability < BestSuitability ||
-               (CurrentSuitability == BestSuitability &&
-                SomeOtherFactorMakesThisPixelPreferedOverTheOtherOne)):
-               IdealPixel = pixel                                         
-        colourList.remove(IdealColour)                                     O(p)
-        Pixel.Colour = IdealColour
         
-        Pixels.AddNeighbours(x,y)
-    '''
-    print "Done!"
+        pixel.Colour=IdealColour
+        image.UpdateNeighbours(pixel.X, pixel.Y)
+        i += 1
+        if (i%1000 == 0):print i
+    
+
+    png.from_array(image.FlatRows(), "RGB", {"height":height,"bitdepth":colourBits}).save("C:/temp/generate.png")
+    
+    print "Done! I took", datetime.now() - StartTime

@@ -4,6 +4,8 @@ Created on Mar 7, 2014
 @author: tdeith
 '''
 
+import numpy
+
 class Colour():
     '''
     A class for storing a colour, and retrieving that colour's RGB/HSL values.  
@@ -52,3 +54,6 @@ class Colour():
         cmax = max(self.R, self.G, self.B)
         cmin = min(self.R, self.G, self.B)
         return (cmax + cmin)/2
+    
+    def GetDist(self,(R,G,B)):
+        return numpy.sqrt((self.R - R)**2 + (self.G - G)**2 + (self.B - B)**2) 

@@ -7,6 +7,7 @@ Created on Mar 25, 2014
 from Pixel import Pixel
 from Colour import Colour #@UnusedImport
 from collections import deque
+import random
 
 class PixelList(object):
     '''
@@ -36,39 +37,46 @@ class PixelList(object):
         '''
         return self._pixels[index]        
         
-    def UpdateNeighbours(self, x, y):
+    def UpdateNeighbours(self, pixel):
         '''
         Called to update all neighbours in the vicinity of a pixel; each neighbouring
         pixel will have it's target (ideal) colour updated, and will be added to the 
         processing queue if it hasn't yet been added.
         '''
-        # Get the colour the neighbouring pixels will be updated with
-        newColour = self[x][y].Colour
         
+        (x,y) = pixel.X, pixel.Y
+        
+        # Make sure this pixel doesn't get processed again
+        self.UntouchedPixels[x][y] = False
+                
         # Loop through the immediately neighbouring pixel coordinates
-        for (newx, newy) in [(x+1, y), (x-1, y), (x, y+1), (x, y-1)]:
+        for (newx, newy) in [(x+dx-2,y+dy-2) for dx in xrange(4) for dy in xrange(4)]:
             
             # Check that this pixel is in range
-            if (self.Width -1 > newx and 
-                self.Height - 1 > newy and 
+            if (self.Width > newx and 
+                self.Height > newy and 
                 0 <= newx and
                 0 <= newy):
                 
-                # Update the target colour of this neighbouring pixel
-                self[newx][newy].UpdateTarget(newColour)
-                
-                # Add this new neighbour to the queue, if it hasn't already been addressed. 
+                self[newx][newy].UpdateTarget(pixel.Colour)
+
+                # Add this new neighbour to the queue if it hasn't already been addressed. 
                 if (self.UntouchedPixels[newx][newy]):
                     self.UntouchedPixels[newx][newy] = False
+                    
+                    # Update the target colour of this neighbouring pixel
                     self.PixelQueue.append((newx,newy))
                     
     def NextPixel(self):
         '''
         Pop the next pixel from the processing queue
         '''
+    
         while ( 0 < len(self.PixelQueue)):
-            # For FIFO behaviour, use popleft here. For LIFO behaviour, use pop.
-            (x,y) = self.PixelQueue.popleft()
+            nextIndex = random.randint(0,len(self.PixelQueue)-1)
+            # For FIFO behaviour, use popleft here. For LIFO behaviour, use pop. For somewhat-behaviour, do this randint stuff...
+            (x,y) = self.PixelQueue[nextIndex]
+            del self.PixelQueue[nextIndex]
             yield self[x][y]
                 
     def FlatRows(self):

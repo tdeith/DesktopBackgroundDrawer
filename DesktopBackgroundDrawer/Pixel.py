@@ -19,8 +19,15 @@ class Pixel(object):
         self.QueueIndex = -1
         self.CompletedNeighbours = 0
         
-    def UpdateTarget(self, nextColour):
-        (self.TargetColour.R, self.TargetColour.G, self.TargetColour.B) = ((self.TargetColour.R * self.CompletedNeighbours + nextColour.R)/(self.CompletedNeighbours + 1),
-                                                                           (self.TargetColour.G * self.CompletedNeighbours + nextColour.G)/(self.CompletedNeighbours + 1),
-                                                                           (self.TargetColour.B * self.CompletedNeighbours + nextColour.B)/(self.CompletedNeighbours + 1))
+    def UpdateTarget(self, nextColour): 
+        self.TargetColour.R = float(self.TargetColour.R * self.CompletedNeighbours + nextColour.R)/(self.CompletedNeighbours + 1)
+        self.TargetColour.G = float(self.TargetColour.G * self.CompletedNeighbours + nextColour.G)/(self.CompletedNeighbours + 1)
+        self.TargetColour.B = float(self.TargetColour.B * self.CompletedNeighbours + nextColour.B)/(self.CompletedNeighbours + 1)
+    
         self.CompletedNeighbours += 1
+        
+    def printColour(self):
+        print self.Colour.R, self.Colour.G, self.Colour.B
+        
+    def printTarget(self):
+        print self.TargetColour.R, self.TargetColour.G, self.TargetColour.B

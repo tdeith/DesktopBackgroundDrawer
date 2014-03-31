@@ -10,8 +10,7 @@ from PixelList import *         # @UnusedWildImport
 from datetime import datetime
 from random import randint
 from xmlrpclib import MAXINT
-import png 
-import numpy
+import png
 
 if __name__ == '__main__':
     
@@ -20,9 +19,9 @@ if __name__ == '__main__':
     
     
     # Set resolution, set number of bits, check that number of bits is big enough for resolution
-    colourBits = 6
-    width = 100 
-    height = 100
+    colourBits = 4
+    width = 64  
+    height = 64
     
     assert (width * height <= 2**(colourBits * 3))
     
@@ -40,9 +39,9 @@ if __name__ == '__main__':
     # Insert one pixel from the list to the image in a random spot - place neighbours in PixelQueue
     image = PixelList(width, height)
     
-    (RandR, RandG, RandB) = (randint(0,2**colourBits-1),
-                             randint(0,2**colourBits-1),
-                             randint(0,2**colourBits-1))
+    (RandR, RandG, RandB) = (random.randint(0, 2**colourBits-1),
+                             random.randint(0, 2**colourBits-1),
+                             random.randint(0, 2**colourBits-1))
     
     print "c", datetime.now() - StartTime
     
@@ -51,7 +50,7 @@ if __name__ == '__main__':
     print startx, starty, RandR, RandG, RandB
     
     image[startx][starty].Colour = Colour(RandR, RandG, RandB)
-    image.UpdateNeighbours(startx, starty)
+    image.UpdateNeighbours(image[startx][starty])
     ColoursUsedTable[RandR][RandG][RandB] = True
     
     print "d", datetime.now() - StartTime
@@ -89,27 +88,31 @@ if __name__ == '__main__':
     i = 1
     
     for pixel in image.NextPixel():
-        lookRange = int(2 + 2**colourBits*(i/(width*height))**2)
+        lookRange = 2 + int(2**colourBits*float(i/(width*height)))
+        IdealColour = None
         BestSuitability = MAXINT
-        for R in range(max(0,pixel.TargetColour.R-lookRange),min(2**colourBits-1,pixel.TargetColour.R+lookRange)):
-            if (list(sum(ColoursUsedTable[R],[])).count(False) == 0):continue
-            for G in range(max(0,pixel.TargetColour.G-lookRange),min(2**colourBits-1,pixel.TargetColour.G+lookRange)):
+        for R in range(int(max([0,pixel.TargetColour.R-lookRange])),int(min([2**colourBits-1,pixel.TargetColour.R+lookRange]))):
+            if ([entry for entries in ColoursUsedTable[R] for entry in entries].count(False) == 0):continue
+            for G in range(int(max(0,pixel.TargetColour.G-lookRange)),int(min([2**colourBits-1,pixel.TargetColour.G+lookRange]))):
                 if (ColoursUsedTable[R][G].count(False) == 0):continue
-                for B in range(max(0,pixel.TargetColour.B-lookRange),min(2**colourBits-1,pixel.TargetColour.B+lookRange)):
+                for B in range(int(max([0,pixel.TargetColour.B-lookRange])),int(min([2**colourBits-1,pixel.TargetColour.B+lookRange]))):
                     if (ColoursUsedTable[R][G][B]):continue
-                    CurrentSuitability = pixel.TargetColour.GetDist((R,G,B))
-                    if ( CurrentSuitability < BestSuitability ):
-                        IdealColour = Colour(R,G,B)                                         
+                    CurrentSuitability = pixel.TargetColour.GetCartesianDist((R,G,B))
+                    if ((CurrentSuitability < BestSuitability) or
+                        ((CurrentSuitability == BestSuitability) and
+                         (pixel.TargetColour.GetHueDist((R,G,B)) < pixel.TargetColour.GetHueDist((IdealColour.R,IdealColour.G,IdealColour.B))))):
+                        BestSuitability = CurrentSuitability
+                        IdealColour = Colour(R,G,B)
         try:
             ColoursUsedTable[IdealColour.R][IdealColour.G][IdealColour.B] = True
         except:
-            pass
-        
+            print "Colour error on pixel", i , ". look range is", lookRange
+            raise        
         
         pixel.Colour=IdealColour
-        image.UpdateNeighbours(pixel.X, pixel.Y)
+        image.UpdateNeighbours(pixel)
         i += 1
-        if (i%1000 == 0):print i
+        if (i%1000 == 0):png.from_array(image.FlatRows(), "RGB", {"height":height,"bitdepth":colourBits}).save("C:/temp/generate.png")
     
 
     png.from_array(image.FlatRows(), "RGB", {"height":height,"bitdepth":colourBits}).save("C:/temp/generate.png")

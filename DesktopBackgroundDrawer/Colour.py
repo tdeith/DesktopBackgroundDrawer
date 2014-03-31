@@ -32,12 +32,13 @@ class Colour():
     def GetHue(self):
         cmax = max(self.R, self.G, self.B)
         cmin = min(self.R, self.G, self.B)
+        if ( self.R == self.G == self.B) : return 0
         if ( self.R == cmax):
-            return (60* ( (self.G-self.B)/(cmax-cmin)%6))
+            return (60* ( float(self.G-self.B)/(cmax-cmin)%6))
         elif (self.G == cmax):
-            return (60* ( (self.B-self.R)/(cmax-cmin)+2))
+            return (60* ( float(self.B-self.R)/(cmax-cmin)+2))
         elif (self.B == cmax):
-            return (60* ( (self.R-self.G)/(cmax-cmin)+4))
+            return (60* ( float(self.R-self.G)/(cmax-cmin)+4))
         
     # Retrieves the Saturation for this colour instance
     def GetSat(self):
@@ -55,5 +56,15 @@ class Colour():
         cmin = min(self.R, self.G, self.B)
         return (cmax + cmin)/2
     
-    def GetDist(self,(R,G,B)):
+    def GetCartesianDist(self,(R,G,B)):
         return numpy.sqrt((self.R - R)**2 + (self.G - G)**2 + (self.B - B)**2) 
+    
+    def GetHueDist(self, (R,G,B)):
+        diff = abs(self.GetHue() - Colour(R,G,B).GetHue())
+
+        if (diff > 180):
+            diff = abs(diff - 360)
+        
+        return diff
+        
+    

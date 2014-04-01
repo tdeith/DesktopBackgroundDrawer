@@ -39,7 +39,7 @@ def timeMe():
     print "b1"
     
     
-    for x in xrange(1):
+    for x in xrange(1):    # @UnusedVariable
         RandR, RandG, RandB = (random.randint(0, 2**colourBits-1),
                                random.randint(0, 2**colourBits-1),
                                random.randint(0, 2**colourBits-1))
@@ -90,7 +90,7 @@ def timeMe():
     
     i = 1
     
-    assert([x for x in colourTable._searchSpace for x in x for x in x].count(0)>0)
+    assert([x for x in colourTable._searchSpace for x in x for x in x].count(0)>0)   # @UnusedVariable
     
     for pixel in image.NextPixel():
         NearbyColours = colourTable.GetNearestNeighbours(pixel[0:3])

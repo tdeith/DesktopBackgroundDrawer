@@ -4,7 +4,6 @@ Created on Mar 25, 2014
 @author: tdeith
 '''
 
-from Pixel import Pixel
 from Colour import Colour #@UnusedImport
 from collections import deque
 import random
@@ -22,10 +21,15 @@ class PixelList(object):
         Constructor
         '''        
         # Create the width*height pixel array
-        self._pixels = [[Pixel(x,y) for y in xrange(height) ] for x in xrange(width)]
+        self._pixels = [[[0,0,0,0] for y in xrange(height) ] for x in xrange(width)]        # @UnusedVariable
+                
+        print "Pixels!"
                 
         # Initialize the list of which pixels are yet to be touched
-        self.UntouchedPixels = [[True for y in xrange(height)] for x in xrange(width)]
+        self.UntouchedPixels = [[True for y in xrange(height)] for x in xrange(width)]      # @UnusedVariable
+        
+        print "Untouched!"
+        
         self.PixelQueue = deque()
         self.Width = width
         self.Height = height
@@ -37,14 +41,15 @@ class PixelList(object):
         '''
         return self._pixels[index]        
         
-    def UpdateNeighbours(self, x, y):
+    def UpdateNeighbours(self, x=-1, y=-1):
         '''
         Called to update all neighbours in the vicinity of a pixel; each neighbouring
         pixel will have it's target (ideal) colour updated, and will be added to the 
         processing queue if it hasn't yet been added.
         '''
         
-        CentralPixel = self[x][y]
+        if (x == -1 and y == -1):
+            x,y=self._lastCoords
         
         # Make sure this pixel doesn't get processed again
         self.UntouchedPixels[x][y] = False
@@ -58,7 +63,7 @@ class PixelList(object):
                 0 <= newx and
                 0 <= newy):
                 
-                self[newx][newy].UpdateTarget(CentralPixel .Colour)
+                self._updatePixelTarget(newx, newy, x, y)
 
                 # Add this new neighbour to the queue if it hasn't already been addressed. 
                 if (self.UntouchedPixels[newx][newy]):
@@ -66,6 +71,27 @@ class PixelList(object):
                     
                     # Update the target colour of this neighbouring pixel
                     self.PixelQueue.append((newx,newy))
+                    
+    def _updatePixelTarget(self, newx, newy, x, y):
+        
+        R, G, B, NeighbourCounter = self[newx][newy]
+        
+        newR, newG, newB = self[x][y][0:3]
+        
+        if (NeighbourCounter == -1):
+            return
+
+        elif (NeighbourCounter == 0 ):
+            R,G,B = newR, newG, newB
+        else:  
+            R = float(R * NeighbourCounter + newR)/(NeighbourCounter + 1)
+            G = float(G * NeighbourCounter + newG)/(NeighbourCounter + 1)
+            B = float(B * NeighbourCounter + newB)/(NeighbourCounter + 1)
+            
+    
+        NeighbourCounter += 1
+        
+        self[newx][newy] = [R,G,B,NeighbourCounter]
                     
     def NextPixel(self):
         '''
@@ -76,13 +102,13 @@ class PixelList(object):
             nextIndex = random.randint(0,len(self.PixelQueue)-1)
             # For FIFO behaviour, use popleft here. For LIFO behaviour, use pop. For somewhat-behaviour, do this randint stuff...
 
-            (x,y) = self.PixelQueue[nextIndex]
+            x,y = self.PixelQueue[nextIndex]
             del self.PixelQueue[nextIndex]
             
             # (x,y) = self.PixelQueue.popleft()
             
-            assert ( self[x][y].X == x )
-            assert ( self[x][y].Y == y )
+            self._lastCoords = (x,y)
+            
             yield self[x][y]
                 
     def FlatRows(self):
@@ -94,5 +120,5 @@ class PixelList(object):
         for row in list(zip(*self)):
             RGBRow = []
             for pixel in row:
-                RGBRow.extend((pixel.Colour.R, pixel.Colour.G, pixel.Colour.B))
+                RGBRow.extend(pixel[0:3])
             yield RGBRow

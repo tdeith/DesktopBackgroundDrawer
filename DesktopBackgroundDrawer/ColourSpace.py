@@ -58,7 +58,7 @@ class ColourSpace(object):
                 if (B - self._searchRadius >= 0):
                     self._searchMinB()
 
-    def GetNearestNeighbours(self, R, G, B):
+    def GetNearestNeighbours(self, (R, G, B)):
         
         # Initialize the search radius, and best-found radius
         self._searchRadius = 0
@@ -70,9 +70,7 @@ class ColourSpace(object):
         self._entriesToUpdate = []
         
         # Store the ideal RGB value
-        self._idealR = R
-        self._idealG = G
-        self._idealB = B
+        ( self._idealR, self._idealG,  self._idealB ) = (R,G,B)
         
         # Discretize R,G,B for use in Cartesian-y index-y arithmetics 
         R = int(round(R))

@@ -4,24 +4,24 @@ Created on Mar 10, 2014
 @author: tdeith
 '''
 
-from Colour import *            # @UnusedWildImport
 from Pixel import *             # @UnusedWildImport
 from PixelList import *         # @UnusedWildImport
 from ColourSpace import *       # @UnusedWildImport
+import ColourUtilities 
 from datetime import datetime
 from random import randint
 import png
+import cProfile
 
-if __name__ == '__main__':
-    
+def timeMe():    
     # StartTime = now
     StartTime = datetime.now()
     
     
     # Set resolution, set number of bits, check that number of bits is big enough for resolution
-    colourBits = 7
-    width = 1024
-    height = 2048
+    colourBits = 5
+    width = 128
+    height = 256
     
     assert (width * height <= 2**(colourBits * 3))
     
@@ -29,8 +29,16 @@ if __name__ == '__main__':
     
     print "b", datetime.now() - StartTime
     
+    colourTable = ColourSpace(colourBits)
+
+    print "b2"
+
     # Insert one pixel from the list to the image in a random spot - place neighbours in PixelQueue
     image = PixelList(width, height)
+    
+    print "b1"
+    
+    
     for x in xrange(1):
         RandR, RandG, RandB = (random.randint(0, 2**colourBits-1),
                                random.randint(0, 2**colourBits-1),
@@ -42,11 +50,10 @@ if __name__ == '__main__':
         
         print startx, starty, RandR, RandG, RandB
         
-        image[startx][starty].Colour = Colour(RandR, RandG, RandB)
+        image[startx][starty] = (RandR, RandG, RandB, -1)
         
         image.UpdateNeighbours(startx,starty)
         
-        colourTable = ColourSpace(colourBits)
         colourTable.FlagColourAsUsed(RandR, RandG, RandB)
     
     print "d", datetime.now() - StartTime
@@ -86,7 +93,7 @@ if __name__ == '__main__':
     assert([x for x in colourTable._searchSpace for x in x for x in x].count(0)>0)
     
     for pixel in image.NextPixel():
-        NearbyColours = colourTable.GetNearestNeighbours(pixel.TargetColour.R, pixel.TargetColour.G, pixel.TargetColour.B)
+        NearbyColours = colourTable.GetNearestNeighbours(pixel[0:3])
         
         assert(NearbyColours is not None)
         if(len(NearbyColours) <= 0):
@@ -101,14 +108,16 @@ if __name__ == '__main__':
         for CurrentColour in NearbyColours:
             if ( BestMatch is None ):
                 BestMatch = CurrentColour
-            if ( pixel.TargetColour.GetHueDist(CurrentColour) < \
-                 pixel.TargetColour.GetHueDist(BestMatch)):
+            if  (ColourUtilities.GetHueDist(pixel[0:3], CurrentColour) < \
+                 ColourUtilities.GetHueDist(pixel[0:3], BestMatch)):
                 BestMatch = CurrentColour
             
-        pixel.Colour = Colour(RGB = BestMatch)
+        pixel[3] = -1
+        pixel[0:3] = BestMatch
+        
         colourTable.FlagColourAsUsed(RGB=BestMatch)
         
-        image.UpdateNeighbours(pixel.X, pixel.Y)
+        image.UpdateNeighbours()
         i += 1
         if (i%1000 == 0):
             print i
@@ -121,3 +130,8 @@ if __name__ == '__main__':
     print [x for x in colourTable._searchSpace for x in x for x in x].count(-1)
     
     print "Done! I took", datetime.now() - StartTime
+    
+    
+if __name__ == '__main__':
+    cProfile.run("timeMe()")
+

@@ -4,15 +4,13 @@ Created on Mar 7, 2014
 @author: tdeith
 '''
 
-import numpy
-
 class Colour():
     '''
-    A class for storing a colour, and retrieving that colour's RGB/HSL values.  
+    A class for storing a colour, and retrieving/comparing that colour's RGB/HSL values.  
     '''
     
     # Initalize a new colour. Can include RGB tuple as parameter.
-    def __init__(self, R = 0, G = 0, B = 0):
+    def __init__(self, R = 0, G = 0, B = 0, RGB = None):
         # See if the colours are actually cast-able as ints
         try:
             R,G,B = int(R), int(G), int(B)
@@ -26,7 +24,10 @@ class Colour():
             print "Error on Colour initialization! Initialized RGB value of ( {0}, {1}, {2} ) is out of bounds".format(R,G,B)
             raise ValueError()
  
-        (self.R, self.G, self.B) =  R , G , B
+        if (RGB is not None): 
+            self.R, self.G, self.B = RGB
+        else:    
+            self.R, self.G, self.B =  R, G, B
     
     # Retrieves the Hue for this colour instance. This algorithm is pretty funny... 
     def GetHue(self):
@@ -56,14 +57,16 @@ class Colour():
         cmin = min(self.R, self.G, self.B)
         return (cmax + cmin)/2
     
-    def GetCartesianDist(self,(R,G,B)):
-        return numpy.sqrt((self.R - R)**2 + (self.G - G)**2 + (self.B - B)**2) 
-    
     def GetHueDist(self, (R,G,B)):
         diff = abs(self.GetHue() - Colour(R,G,B).GetHue())
 
         if (diff > 180):
             diff = abs(diff - 360)
+          
+        '''    
+        print "Colours", self.R,self.G,self.B,"(", self.GetHue(),") and", R,G,B, "\
+                    (",Colour(R,G,B).GetHue(), ") are", diff, "apart."
+        '''
         
         return diff
         

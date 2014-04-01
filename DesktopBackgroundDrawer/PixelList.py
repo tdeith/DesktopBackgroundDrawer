@@ -22,7 +22,7 @@ class PixelList(object):
         Constructor
         '''        
         # Create the width*height pixel array
-        self._pixels = [[Pixel(x,y)for y in xrange(height) ] for x in xrange(width)]
+        self._pixels = [[Pixel(x,y) for y in xrange(height) ] for x in xrange(width)]
                 
         # Initialize the list of which pixels are yet to be touched
         self.UntouchedPixels = [[True for y in xrange(height)] for x in xrange(width)]
@@ -37,20 +37,20 @@ class PixelList(object):
         '''
         return self._pixels[index]        
         
-    def UpdateNeighbours(self, pixel):
+    def UpdateNeighbours(self, x, y):
         '''
         Called to update all neighbours in the vicinity of a pixel; each neighbouring
         pixel will have it's target (ideal) colour updated, and will be added to the 
         processing queue if it hasn't yet been added.
         '''
         
-        (x,y) = pixel.X, pixel.Y
+        CentralPixel = self[x][y]
         
         # Make sure this pixel doesn't get processed again
         self.UntouchedPixels[x][y] = False
                 
         # Loop through the immediately neighbouring pixel coordinates
-        for (newx, newy) in [(x+dx-2,y+dy-2) for dx in xrange(4) for dy in xrange(4)]:
+        for (newx, newy) in [(x+1,y),(x-1,y),(x,y+1),(x,y-1)]:
             
             # Check that this pixel is in range
             if (self.Width > newx and 
@@ -58,7 +58,7 @@ class PixelList(object):
                 0 <= newx and
                 0 <= newy):
                 
-                self[newx][newy].UpdateTarget(pixel.Colour)
+                self[newx][newy].UpdateTarget(CentralPixel .Colour)
 
                 # Add this new neighbour to the queue if it hasn't already been addressed. 
                 if (self.UntouchedPixels[newx][newy]):
@@ -75,8 +75,14 @@ class PixelList(object):
         while ( 0 < len(self.PixelQueue)):
             nextIndex = random.randint(0,len(self.PixelQueue)-1)
             # For FIFO behaviour, use popleft here. For LIFO behaviour, use pop. For somewhat-behaviour, do this randint stuff...
+
             (x,y) = self.PixelQueue[nextIndex]
             del self.PixelQueue[nextIndex]
+            
+            # (x,y) = self.PixelQueue.popleft()
+            
+            assert ( self[x][y].X == x )
+            assert ( self[x][y].Y == y )
             yield self[x][y]
                 
     def FlatRows(self):

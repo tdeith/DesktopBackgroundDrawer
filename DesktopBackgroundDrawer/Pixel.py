@@ -12,11 +12,10 @@ class Pixel(object):
     the pixel's colour, and pixel's location.  
     '''
 
-    def __init__(self, x = 0, y = 0, colour = Colour(), targetColour=Colour()):
+    def __init__(self, x = 0, y = 0):
         self.X, self.Y = x,y
-        self.Colour = colour
-        self.TargetColour = targetColour
-        self.QueueIndex = -1
+        self.Colour = Colour()
+        self.TargetColour = Colour()
         self.CompletedNeighbours = 0
         
     def UpdateTarget(self, nextColour): 

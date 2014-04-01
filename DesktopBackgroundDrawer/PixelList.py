@@ -120,5 +120,5 @@ class PixelList(object):
         for row in list(zip(*self)):
             RGBRow = []
             for pixel in row:
-                RGBRow.extend(pixel[0:3])
+                RGBRow.extend((int(pixel[0]), int(pixel[1]), int(pixel[2])))
             yield RGBRow

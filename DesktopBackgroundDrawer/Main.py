@@ -19,10 +19,10 @@ def timeMe():
     
     
     # Set resolution, set number of bits, check that number of bits is big enough for resolution
-    colourBits = 5
-    width = 128
-    height = 256
-    
+    colourBits = 8
+    width = 4096    
+    height = 4096
+        
     assert (width * height <= 2**(colourBits * 3))
     
     print "a", datetime.now() - StartTime
@@ -119,10 +119,10 @@ def timeMe():
         
         image.UpdateNeighbours()
         i += 1
-        if (i%1000 == 0):
-            print i
         if (i%10000 == 0):
-            png.from_array(image.FlatRows(), "RGB", {"height":height,"bitdepth":colourBits}).save("C:/temp/generate%(number)i.png" % {"number":i/10000})
+            print i, datetime.now()- StartTime
+        if (i%100000 == 0):
+            png.from_array(image.FlatRows(), "RGB", {"height":height,"bitdepth":colourBits}).save("C:/temp/generate%(number)i.png" % {"number":i/100000})
     
 
     png.from_array(image.FlatRows(), "RGB", {"height":height,"bitdepth":colourBits}).save("C:/temp/generate.png")

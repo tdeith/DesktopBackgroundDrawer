@@ -20,7 +20,7 @@ def timeMe():
     
     # Set resolution, set number of bits, check that number of bits is big enough for resolution
     colourBits = 8
-    width = 4096    
+    width = 4096
     height = 4096
         
     assert (width * height <= 2**(colourBits * 3))

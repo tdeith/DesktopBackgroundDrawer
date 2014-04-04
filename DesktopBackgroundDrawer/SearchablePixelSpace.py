@@ -29,7 +29,7 @@ class SearchablePixelSpace(PixelList):
         self.NeighbourListGenerator = self.NeighbourCoordinateGeneratorNarrow
         
         # n, (Where 2**n is the size of our smallest buckets
-        self.BucketDim = 1
+        self.BucketDim = 2
         
         # The number of bits being used for colour data
         self.ColourBits = colourBits
@@ -136,7 +136,7 @@ class SearchablePixelSpace(PixelList):
                 currentBestRadius = distToTarget
                 
         # Make sure we have a valid best candidate
-        assert ( currentBestCandidate != [-1,-1,-1,-1,-1] )
+#        assert ( currentBestCandidate != [-1,-1,-1,-1,-1] )
         
         return currentBestCandidate
         

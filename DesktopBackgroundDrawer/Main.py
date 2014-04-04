@@ -138,9 +138,9 @@ def TimeMe():
     StartTime = datetime.now()
     
     # Set resolution, set number of bits, check that number of bits is big enough for resolution
-    colourBits = 4
-    width = 64
-    height = 64
+    colourBits = 6
+    width = 512
+    height = 512
     imageInterval = width*height/4
     OutputFileName = "C:/temp/3360/generate.png"
     
@@ -154,9 +154,9 @@ if __name__ == '__main__':
 
     StartTime = datetime.now()
     
-    colourBits = 4
-    width = 64
-    height = 64
+    colourBits = 6
+    width = 512
+    height = 512
     imageInterval = width*height/4
     OutputFileName = "C:/temp/3360/generate.png"
 

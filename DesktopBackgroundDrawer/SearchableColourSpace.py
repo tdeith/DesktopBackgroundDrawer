@@ -4,9 +4,9 @@ Created on Apr 1, 2014
 @author: tdeith
 '''
 from xmlrpclib import MAXINT
-import numpy
+from math import sqrt
 
-class ColourSpace(object):
+class SearchableColourSpace(object):
     '''
     This is a quickly-searchable 3D space representing all unique colour possibilities. 
     This space is optimized for repeated nearest-neighbour searches.
@@ -82,19 +82,19 @@ class ColourSpace(object):
         self.FindFirstNeighbours(R, G, B)
             
         while (len(self._found) == 0):
-            print "AAACH!", R,G,B, [x for x in self._searchSpace for x in x for x in x].count(-1)
+            print "AAACH!", R,G,B
             self.FindFirstNeighbours(R, G, B, ForceExhaustive = True)
         
-        averageRadiusFromFoundToCenter = numpy.sqrt((R - self._found[0][0])**2 + 
-                                                    (G - self._found[0][1])**2 + 
-                                                    (B - self._found[0][2])**2)
+        averageRadiusFromFoundToCenter = sqrt((R - self._found[0][0])**2 + 
+                                              (G - self._found[0][1])**2 + 
+                                              (B - self._found[0][2])**2)
 
         self._searchSpace[R][G][B] = averageRadiusFromFoundToCenter
 
         for (curR, curG, curB) in self._entriesToUpdate:
-            curRadius = numpy.sqrt((curR - R)**2 + 
-                                       (curG - G)**2 + 
-                                       (curB - B)**2)
+            curRadius = sqrt((curR - R)**2 + 
+                             (curG - G)**2 + 
+                             (curB - B)**2)
             
             self._searchSpace[curR][curG][curB] = max(self._searchSpace[curR][curG][curB], 
                                                       averageRadiusFromFoundToCenter - curRadius)
@@ -115,11 +115,11 @@ class ColourSpace(object):
         '''
         Do not call me manually
         Processes a single pixel in the search field
-        '''        
+        '''
         currentItem = self._searchSpace[R][G][B]
-        currentRadius = numpy.sqrt((self._idealR - R)**2 + 
-                                   (self._idealG - G)**2 + 
-                                   (self._idealB - B)**2) 
+        currentRadius = sqrt((self._idealR - R)**2 + 
+                             (self._idealG - G)**2 + 
+                             (self._idealB - B)**2)
         
         if (currentItem == -1):
             if ( currentRadius < self._bestFoundItemRadius ):

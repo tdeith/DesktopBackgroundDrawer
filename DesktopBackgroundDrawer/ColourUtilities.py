@@ -20,7 +20,7 @@ def GetHue(colour):
 def GetSat(colour):
     cmax = max(colour[0], colour[1], colour[2])
     cmin = min(colour[0], colour[1], colour[2])
-    if (cmax == cmin):
+    if (abs(cmax + cmin - 1 ) == 1):
         # Avoid dividing by zero 
         return 0
     else:

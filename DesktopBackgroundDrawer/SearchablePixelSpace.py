@@ -207,8 +207,7 @@ first coordinates to update from."
             newG = float(oldG * NeighbourCounter + controlG)/(NeighbourCounter + 1)
             newB = float(oldB * NeighbourCounter + controlB)/(NeighbourCounter + 1)
             self.ColourBucket.UpdateColour((oldR, oldG, oldB), (newR, newG, newB), (updateX, updateY))
-            self.AvailablePixels.
-                        
+                                    
         NeighbourCounter += 1
         
         self[updateX][updateY] = [newR,newG,newB,NeighbourCounter]

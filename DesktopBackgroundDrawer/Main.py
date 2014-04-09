@@ -123,15 +123,15 @@ def GetPixelsForGreedyColours():
     
     sorter = lambda x,y:cmp(GetHue(x), GetHue(y))
     
-    highSatColours = sorted(highSatColours, sorter)
-    lowSatColours = sorted(lowSatColours, sorter)
+    highSatColours = deque(sorted(highSatColours, sorter))
+    lowSatColours = deque(sorted(lowSatColours, sorter))
             
     randRotateIndex = random.randint(0,len(highSatColours))
     highSatColours.rotate(randRotateIndex)
     
     highSatColours.extend(lowSatColours)
     
-    colourQueue = deque(highSatColours)
+    colourQueue = highSatColours
     
     del highSatColours
     del lowSatColours
@@ -203,8 +203,8 @@ if __name__ == '__main__':
     StartTime = datetime.now()
     
     colourBits = 7
-    width = 2048
-    height = 1024
+    width = 1920
+    height = 1080
     imageInterval = width*height/128
     OutputFileName = "C:/temp/3360/generate.png"
     cProfile.run("TimeMe()")

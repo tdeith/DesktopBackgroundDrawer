@@ -14,7 +14,7 @@ class ColourBucket(object):
         '''
         Constructor
         '''
-
+        
         self.Parent = parent
         self.Size = size
         
@@ -24,9 +24,8 @@ class ColourBucket(object):
         
         # The sum number of colours contained in this bucket
         self.Population = 0
-        
-        self.Colours = []
-        self._populatedChildren = []
+
+        self.Children = []
         self.HasChildren = False
         
         # The center-to-vertice distance, with sqrt(3) approximated to 1.733.
@@ -41,65 +40,61 @@ class ColourBucket(object):
                                for dG in [-midSpan, midSpan]
                                for dR in [-midSpan, midSpan]]
             
-    def Children (self):
-        for child in self._populatedChildren:
-            yield child
-                
-    def AddColour (self, (R, G, B),(x,y)):
-        rCoord = R>=self.MidR
-        gCoord = G>=self.MidG
-        bCoord = B>=self.MidB
-        
-        if ( self.HasChildren ):
-            self._indexedChildren[rCoord + 2*gCoord + 4*bCoord].AddColour((R,G,B), (x,y))
-        else:
-            self.Colours.append([R,G,B,x,y])
-            
-        if (self.Population == 0 and self.Parent is not None):
-            self.Parent._populatedChildren.append(self)
-        self.Population += 1
+def AddColour (self, (R, G, B),(x,y)):
+    rCoord = R>=self.MidR
+    gCoord = G>=self.MidG
+    bCoord = B>=self.MidB
     
-    def RemoveColour (self, (R, G, B),(x,y)): 
-        rCoord = R>=self.MidR
-        gCoord = G>=self.MidG
-        bCoord = B>=self.MidB
+    if ( self.HasChildren ):
+        AddColour(self._indexedChildren[rCoord + 2*gCoord + 4*bCoord], (R,G,B), (x,y))
+    else:
+        self.Children.append([R,G,B,x,y])
         
-        if ( self.HasChildren ):
-            self._indexedChildren[rCoord + 2*gCoord + 4*bCoord].RemoveColour((R,G,B), (x,y))
-        else:
-            self.Colours.remove([R,G,B,x,y])
-            
-        self.Population -= 1
-        if (self.Population == 0 and self.Parent is None):
-            pass
-        
-        if (self.Population == 0 and self.Parent is not None):
-            self.Parent._populatedChildren.remove(self)
-        
-    def UpdateColour (self, (oldR,oldG,oldB), (newR,newG,newB), (x,y)):
-        oldRCoord = oldR>=self.MidR
-        oldGCoord = oldG>=self.MidG
-        oldBCoord = oldB>=self.MidB
+    if (self.Population == 0 and self.Parent is not None):
+        self.Parent.Children.append(self)
+    self.Population += 1
 
-        newRCoord = newR>=self.MidR
-        newGCoord = newG>=self.MidG
-        newBCoord = newB>=self.MidB
+def RemoveColour (self, (R, G, B),(x,y)): 
+    rCoord = R>=self.MidR
+    gCoord = G>=self.MidG
+    bCoord = B>=self.MidB
+    
+    if ( self.HasChildren ):
+        RemoveColour(self._indexedChildren[rCoord + 2*gCoord + 4*bCoord], (R,G,B), (x,y))
+    else:
+        self.Children.remove([R,G,B,x,y])
+        
+    self.Population -= 1
+    if (self.Population == 0 and self.Parent is None):
+        pass
+    
+    if (self.Population == 0 and self.Parent is not None):
+        self.Parent.Children.remove(self)
+    
+def UpdateColour (self, (oldR,oldG,oldB), (newR,newG,newB), (x,y)):
+    oldRCoord = oldR>=self.MidR
+    oldGCoord = oldG>=self.MidG
+    oldBCoord = oldB>=self.MidB
 
-        if ( self.HasChildren ): 
-            if ((oldRCoord, oldGCoord, oldBCoord) == (newRCoord, newGCoord, newBCoord)):
-                self._indexedChildren[oldRCoord+2*oldGCoord+4*oldBCoord].UpdateColour((oldR,oldG,oldB), (newR,newG,newB), (x,y))
-            else: 
-                self._indexedChildren[oldRCoord+2*oldGCoord+4*oldBCoord].RemoveColour((oldR,oldG,oldB), (x,y))
-                self._indexedChildren[newRCoord+2*newGCoord+4*newBCoord].AddColour((newR,newG,newB), (x,y))
-        else:
-            self.Colours.remove([oldR,oldG,oldB,x,y])
-            self.Colours.append([newR,newG,newB,x,y])
-            
-    def GetBucketNearest(self, (R, G, B)):
-        rCoord = R>=self.MidR
-        gCoord = G>=self.MidG
-        bCoord = B>=self.MidB
-        if (self.HasChildren):
-            return self._indexedChildren[rCoord + 2*gCoord + 4*bCoord].GetBucketNearest((R,G,B))
-        else:
-            return self
+    newRCoord = newR>=self.MidR
+    newGCoord = newG>=self.MidG
+    newBCoord = newB>=self.MidB
+
+    if ( self.HasChildren ): 
+        if ((oldRCoord, oldGCoord, oldBCoord) == (newRCoord, newGCoord, newBCoord)):
+            UpdateColour(self._indexedChildren[oldRCoord+2*oldGCoord+4*oldBCoord], (oldR,oldG,oldB), (newR,newG,newB), (x,y))
+        else: 
+            RemoveColour(self._indexedChildren[oldRCoord+2*oldGCoord+4*oldBCoord], (oldR,oldG,oldB), (x,y))
+            AddColour(self._indexedChildren[newRCoord+2*newGCoord+4*newBCoord], (newR,newG,newB), (x,y))
+    else:
+        self.Children.remove([oldR,oldG,oldB,x,y])
+        self.Children.append([newR,newG,newB,x,y])
+        
+def GetBucketNearest(self, (R, G, B)):
+    rCoord = R>=self.MidR
+    gCoord = G>=self.MidG
+    bCoord = B>=self.MidB
+    if (self.HasChildren):
+        return GetBucketNearest(self._indexedChildren[rCoord + 2*gCoord + 4*bCoord],(R,G,B))
+    else:
+        return self

@@ -5,7 +5,7 @@ Created on Apr 3, 2014
 '''
 
 from PixelList import PixelList
-from ColourBucket import ColourBucket
+from ColourBucket import *
 from ColourUtilities import GetHueDist
 from xmlrpclib import MAXINT
 from math import sqrt
@@ -23,13 +23,13 @@ class SearchablePixelSpace(PixelList):
         '''
         Constructor
         '''
-        PixelList.__init__(self, width, height, 4)
+        PixelList.__init__(self, width, height, 5)
 
         # Initialize the methods we'll use for pixel neighbour grabbing etc
-        self.NeighbourListGenerator = self.NeighbourCoordinateGeneratorNarrow
+        self.NeighbourListGenerator = self.NeighbourCoordinateGeneratorBroad
         
         # n, (Where 2**n is the size of our smallest buckets
-        self.BucketDim = 2
+        self.BucketDim = 1
         
         # The number of bits being used for colour data
         self.ColourBits = colourBits
@@ -45,51 +45,33 @@ class SearchablePixelSpace(PixelList):
                                          colourBits, self.BucketDim)
         
         self.AvailablePixels = set(())
-
-    def IterateThroughChildren(self, (targetR,targetG,targetB), currentCandidate, candidateList, currentBestRadius ):
-        for child in currentCandidate.Children():
-            self.ProcessChild((targetR, targetG, targetB), child, candidateList, currentBestRadius)
-        #end for
         
-    def ProcessChild(self, (targetR,targetG,targetB), child, candidateList, currentBestRadius):
-        # Check to see that this child is actually worth continuing with - 
-        #   Is it populated, and is it close enough to the search point
-        #   compared to the other candidates
-        assert (child.Population != 0)
-        bucketMidDistToTarget =  sqrt((targetR - child.MidR)**2 +
-                                      (targetG - child.MidG)**2 +
-                                      (targetB - child.MidB)**2 )
-
-        if ( bucketMidDistToTarget > currentBestRadius):
-            #continue
-            return
-        
-        # Set the current best radius, if we've found a new best.
-        if (currentBestRadius > bucketMidDistToTarget + child.RadiusTolerance ):
-            currentBestRadius = bucketMidDistToTarget + child.RadiusTolerance
-            
-        candidateList.append(child)
-            
-        # end if
-
     def MakeCandidateList(self,(targetR,targetG,targetB)):
         currentBestRadius = MAXINT
-        candidateList = deque()
+        bucketList = []
+        candidateColours = []
                 
         if (self.ColourBucket.Population == 0):
             pass
         
-        candidateList.append(self.ColourBucket)
-        while ( len(candidateList) != 0 and not isinstance(candidateList[0], list) ):
-            currentCandidate = candidateList.popleft()
+        bucketList.append(self.ColourBucket)
+        while ( bucketList ):
+            currentCandidate = bucketList.pop()
             if currentCandidate.HasChildren:
-                self.IterateThroughChildren((targetR,targetG,targetB), currentCandidate, candidateList, currentBestRadius )
+                for child in currentCandidate.Children:
+                    dist = sqrt((targetR-child.MidR)**2+
+                                (targetG-child.MidG)**2+
+                                (targetB-child.MidB)**2)
+                    if (dist <= currentBestRadius):
+                        bucketList.extend(currentCandidate.Children)
+                        if (currentBestRadius > dist + child.RadiusTolerance):
+                            currentBestRadius = dist + child.RadiusTolerance
+                        
             else:
-                for colour in currentCandidate.Colours:
-                    candidateList.append(colour)
+                candidateColours.extend(currentCandidate.Children)
             # end if
         #end while
-        return candidateList
+        return candidateColours
 
         
     def GetBestPixelForColour(self, (targetR,targetG,targetB)):
@@ -141,7 +123,7 @@ class SearchablePixelSpace(PixelList):
         return currentBestCandidate
         
     def MarkPixelAsTaken(self, (newR, newG, newB),(R,G,B,x,y)):
-        self.ColourBucket.RemoveColour((R,G,B),(x,y))
+        RemoveColour(self.ColourBucket, (R,G,B),(x,y))
         self[x][y] = [newR, newG, newB, -1]
         
     def UpdateNeighbours(self, x=-1, y=-1):
@@ -162,7 +144,7 @@ first coordinates to update from."
                 raise
                                 
         # Loop through the neighbouring pixel coordinates
-        for (newx, newy) in self.NeighbourListGenerator(x,y):
+        for (newx, newy, canAdd) in self.NeighbourListGenerator(x,y):
             
             # Check that this pixel is in range, and hasn't already been processed
             if (self.Width > newx and 
@@ -172,42 +154,48 @@ first coordinates to update from."
                 self[newx][newy][3] != -1):
                                     
                 # Update the target colour of this neighbouring pixel
-                self.UpdatePixelTarget(newx, newy, x, y)
+                self.UpdatePixelTarget(newx, newy, x, y, canAdd)
 
     def NeighbourCoordinateGeneratorNarrow(self, x, y):
         '''
         Yield the 4 immediately adjacent pixels
         '''
         for newx,newy in ((x+1,y),(x-1,y),(x,y+1),(x,y-1)):
-            yield (newx, newy)
+            yield (newx, newy, True)
                                                       
     def NeighbourCoordinateGeneratorBroad(self, x, y):
         '''
         Yield neighbouring pixels in a 5x5 square around the central pixel
         '''
-        for newx, newy in ((x+dx,y+dy) for dy in range(-2,2) for dx in range(-2,2) if (not (dx == 0 and dy == 0) and abs(dx)+abs(dy) != 4)):
-            yield (newx,newy)
+        for newx, newy, dx, dy in ((x+dx,y+dy, dx, dy) for dy in range(-2,2) for dx in range(-2,2) if (not (dx == 0 and dy == 0) and abs(dx)+abs(dy) != 4)):
+            yield (newx,newy,abs(dy)+abs(dx) == 1)
                 
-    def UpdatePixelTarget(self, updateX, updateY, controllingX, controllingY ):
+    def UpdatePixelTarget(self, updateX, updateY, controllingX, controllingY, canAdd):
         
-        oldR, oldG, oldB, NeighbourCounter = self[updateX][updateY]
+        oldR, oldG, oldB, NeighbourCounter, HasBeenAdded = self[updateX][updateY]
         
         controlR, controlG, controlB = self[controllingX][controllingY][0:3]
         
         if (NeighbourCounter == -1):
             # This pixel has already selected a colour; we don't want to edit its target
             return
-        elif (NeighbourCounter == 0 ):
+        elif ( NeighbourCounter == 0 ):
             # This is the first neighbour this pixel has found
             newR, newG, newB = controlR, controlG, controlB
-            self.ColourBucket.AddColour((newR, newG, newB), (updateX, updateY))
         else:  
             # Update this pixel's R,G,B values to 
             newR = float(oldR * NeighbourCounter + controlR)/(NeighbourCounter + 1)
             newG = float(oldG * NeighbourCounter + controlG)/(NeighbourCounter + 1)
             newB = float(oldB * NeighbourCounter + controlB)/(NeighbourCounter + 1)
-            self.ColourBucket.UpdateColour((oldR, oldG, oldB), (newR, newG, newB), (updateX, updateY))
-                                    
+            
+       
         NeighbourCounter += 1
-        
-        self[updateX][updateY] = [newR,newG,newB,NeighbourCounter]
+                    
+        if ( canAdd and not HasBeenAdded):
+            AddColour(self.ColourBucket, (newR, newG, newB), (updateX, updateY))
+            self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, 1] 
+        elif (HasBeenAdded):
+            UpdateColour(self.ColourBucket, (oldR, oldG, oldB), (newR, newG, newB), (updateX, updateY))
+            self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, 1]
+        else:
+            self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, 0]

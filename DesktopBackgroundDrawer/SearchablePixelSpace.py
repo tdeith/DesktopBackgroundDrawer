@@ -39,8 +39,11 @@ class SearchablePixelSpace(PixelList):
         self.BucketWidth = 2**(self.ColourBits - self.BucketDim)
 
         # Create the buckets of colours and corresponding pixels
-        self.ColourBucket = ColourBucket(2**(colourBits-1), 2**(colourBits-1), 2**(colourBits-1), 
-                                         colourBits, self.BucketDim)
+        self.ColourBucket = ColourBucket(2**(colourBits-1), 
+                                         2**(colourBits-1), 
+                                         2**(colourBits-1), 
+                                         colourBits, 
+                                         self.BucketDim)
         
         self.AvailablePixels = set(())
         

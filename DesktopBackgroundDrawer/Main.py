@@ -177,11 +177,11 @@ if __name__ == '__main__':
     StartTime = datetime.now()
     
     colourBits = 8
-    width = 4000
-    height = 2000
+    width = 1050
+    height = 3320
     imageInterval = width*height/128
     OutputFileName = "C:/temp/3360/generate.png"
-    #cProfile.run("TimeMe()")
+    cProfile.run("TimeMe()")
     GetPixelsForGreedyColours()
 
     print "Done! I took", datetime.now() - StartTime

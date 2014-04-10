@@ -13,16 +13,64 @@ from random import randint
 import png
 import cProfile
 import threading
-from pydoc import deque
-from numpy.core.defchararray import lower
-
-sortSat = 0
-sortHue = 0
-
 
 def MakeImage(image, height, colourBits, FileName):
     png.from_array(image.FlatRows(), "RGB", {"height":height,"bitdepth":colourBits}).save(FileName)
 
+    
+def SteppedSortedColourList():
+    allColours = [(R,G,B)
+                    for B in xrange(2**colourBits) 
+                    for G in xrange(2**colourBits)
+                    for R in xrange(2**colourBits)]
+    lowSatColours = []
+    highSatColours = []
+    for colour in allColours:
+        if ( GetSat(colour, colourBits) > 0.15):
+            highSatColours.append(colour)
+        else:
+            lowSatColours.append(colour)
+    highSatColours = deque(sorted(highSatColours, 
+                                  lambda RGB1,RGB2 : cmp(GetHue(RGB1), GetHue(RGB2))))
+    rotateIndex = random.randint(0,len(highSatColours)-1)
+    
+    random.shuffle(lowSatColours)
+    highSatColours.rotate(rotateIndex)
+    highSatColours.append(deque(lowSatColours))
+    assert len(highSatColours) == len(allColours)
+    return highSatColours
+
+def SortedColourList():
+    allColours = deque(sorted(
+                        [(R,G,B) for B in xrange(2**colourBits) 
+                                 for G in xrange(2**colourBits)
+                                 for R in xrange(2**colourBits)],
+                       lambda RGB1,RGB2 : cmp(GetHue(RGB1), GetHue(RGB2))))
+
+    rotateIndex = random.randint(0,2**colourBits-1)
+    
+    allColours.rotate(rotateIndex)
+    return allColours
+
+def RandomColourList():
+    allColours = [(R,G,B)
+                    for B in xrange(2**colourBits) 
+                    for G in xrange(2**colourBits)
+                    for R in xrange(2**colourBits)]
+    
+    random.shuffle(allColours)
+    return deque(allColours)
+
+def SortedDivergingColourList():
+    randomHue = randint(0,360)
+    allColours = deque(sorted(
+                        [(R,G,B) for B in xrange(2**colourBits) 
+                                 for G in xrange(2**colourBits)
+                                 for R in xrange(2**colourBits)],
+                        
+                        lambda RGB1,RGB2 : cmp(abs(randomHue - GetHue(RGB1)), 
+                                              abs(randomHue - GetHue(RGB2)))))
+    return allColours
 
 def GetColoursForGreedyPixels():    
     # Make a new searchable colour space
@@ -89,78 +137,14 @@ def GetPixelsForGreedyColours():
     # Make the big sorted list of colours 
     startx, starty = (randint(0,width-1),randint(0,height-1))
         
-    def SortColourList(inputList):
-        lowSatList = []
-        highSatList = []
-        for colour in inputList:
-            if ( GetSat(colour, colourBits) > 0.15):
-                highSatList.append(colour)
-            else:
-                lowSatList.append(colour)
-        return (lowSatList, highSatList)
+    print "Making the list of colours to be used up"
+    colourQueue = SortedDivergingColourList()
     
-    def colourSort(RGB1, RGB2):
-        Sat1 = GetSat(RGB1, colourBits) 
-        Sat2 = GetSat(RGB2, colourBits) 
-        if ((Sat1 < 0.1) != (Sat2 < 0.1)):
-            global sortSat
-            sortSat += 1
-            cmpReturn = int(Sat1 < Sat2) - int(Sat2 < Sat1)
-        else:
-            global sortHue
-            sortHue += 1
-            cmpReturn = cmp(GetHue(RGB1), GetHue(RGB2))
-        return cmpReturn
-    
-    print "Making and sorting the list of all available colours. This may take a while."
-
-    highSatColours = [(R,G,B)
-                    for B in xrange(2**colourBits) 
-                    for G in xrange(2**colourBits)
-                    for R in xrange(2**colourBits)]
-    
-    (lowSatColours, highSatColours) = SortColourList(highSatColours)
-    
-    sorter = lambda x,y:cmp(GetHue(x), GetHue(y))
-    
-    highSatColours = deque(sorted(highSatColours, sorter))
-    lowSatColours = deque(sorted(lowSatColours, sorter))
-            
-    randRotateIndex = random.randint(0,len(highSatColours))
-    highSatColours.rotate(randRotateIndex)
-    
-    highSatColours.extend(lowSatColours)
-    
-    colourQueue = highSatColours
-    
-    del highSatColours
-    del lowSatColours
-    
-    '''
-    colourQueue = deque(sorted([(R,G,B)
-                                 for B in xrange(2**colourBits) 
-                                 for G in xrange(2**colourBits)
-                                 for R in xrange(2**colourBits)], colourSort))
-                              
-    print sortSat, sortHue, 2**(colourBits*3)
-    '''
-     
-    '''
-    
-    colourQueue = deque([[R,G,B] 
-                        for B in xrange(2**colourBits) 
-                        for G in xrange(2**colourBits)
-                        for R in xrange(2**colourBits)])
-
-    random.shuffle(colourQueue)
-    '''    
-    print "Rotating some colours around."
-            
-    RandR, RandG, RandB =  colourQueue.popleft()
+    firstR, firstG, firstB =  colourQueue.popleft()
         
-    print RandR, RandG, RandB 
+    print firstR, firstG, firstB 
     
-    pixelSpace[startx][starty] = (RandR, RandG, RandB, -1)
+    pixelSpace[startx][starty] = (firstR, firstG, firstB, -1)
     pixelSpace.UpdateNeighbours(startx, starty)
     
     i = 1
@@ -169,11 +153,13 @@ def GetPixelsForGreedyColours():
     
     while( len(colourQueue) > 0):
         R,G,B = colourQueue.popleft()
-        bestPixel = pixelSpace.GetBestPixelForColour((R,G,B))
+        bestPixel = pixelSpace.GetBestPixelForColour((R,G,B), i)
+        if (not bestPixel):
+            break
         pixelSpace.MarkPixelAsTaken((R, G, B), bestPixel)
-        pixelSpace.UpdateNeighbours(bestPixel[3], bestPixel[4])
+        pixelSpace.UpdateNeighbours(bestPixel[3], bestPixel[4], i)
  
-        if (i%1000 == 0):
+        if (i%10000 == 0):
             print i, datetime.now()- StartTime
         if (i%imageInterval == 0):
             MakeImageThread = threading.Thread(target = MakeImage, args=(pixelSpace, height, colourBits, "C:/temp/2generate"+str(i/imageInterval)+".png"))
@@ -181,31 +167,23 @@ def GetPixelsForGreedyColours():
         i += 1
         
     MakeImage(pixelSpace, height, colourBits, "C:/temp/2generate.png")
-
+    
 def TimeMe():
-    StartTime = datetime.now()
-    
-    # Set resolution, set number of bits, check that number of bits is big enough for resolution
-    colourBits = 6
-    width = 512
-    height = 512
-    imageInterval = width*height/4
-    OutputFileName = "C:/temp/3360/generate.png"
-    
-    assert (width * height <= 2**(colourBits * 3))
-    
+
     GetPixelsForGreedyColours()
     
-    print "Done! I took", datetime.now() - StartTime
-
 if __name__ == '__main__':
 
     StartTime = datetime.now()
     
-    colourBits = 7
-    width = 1920
-    height = 1080
+    colourBits = 8
+    width = 4000
+    height = 2000
     imageInterval = width*height/128
     OutputFileName = "C:/temp/3360/generate.png"
-    cProfile.run("TimeMe()")
+    #cProfile.run("TimeMe()")
+    GetPixelsForGreedyColours()
+
+    print "Done! I took", datetime.now() - StartTime
+
     

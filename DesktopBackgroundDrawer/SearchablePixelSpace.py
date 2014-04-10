@@ -5,12 +5,10 @@ Created on Apr 3, 2014
 '''
 
 from PixelList import PixelList
-from ColourBucket import *
+from ColourBucket import ColourBucket, AddColour, RemoveColour, UpdateColour
 from ColourUtilities import GetHueDist
 from xmlrpclib import MAXINT
 from math import sqrt
-from collections import deque
-from datetime import datetime
 import random
 
 class SearchablePixelSpace(PixelList):
@@ -26,10 +24,10 @@ class SearchablePixelSpace(PixelList):
         PixelList.__init__(self, width, height, 5)
 
         # Initialize the methods we'll use for pixel neighbour grabbing etc
-        self.NeighbourListGenerator = self.NeighbourCoordinateGeneratorBroad
-        
+        self.NeighbourListGenerator = CircularNeighbourGenerator(3)
+                
         # n, (Where 2**n is the size of our smallest buckets
-        self.BucketDim = 1
+        self.BucketDim = max(colourBits-6, 1)
         
         # The number of bits being used for colour data
         self.ColourBits = colourBits
@@ -51,9 +49,6 @@ class SearchablePixelSpace(PixelList):
         bucketList = []
         candidateColours = []
                 
-        if (self.ColourBucket.Population == 0):
-            pass
-        
         bucketList.append(self.ColourBucket)
         while ( bucketList ):
             currentCandidate = bucketList.pop()
@@ -64,8 +59,8 @@ class SearchablePixelSpace(PixelList):
                                 (targetB-child.MidB)**2)
                     if (dist <= currentBestRadius):
                         bucketList.extend(currentCandidate.Children)
-                        if (currentBestRadius > dist + child.RadiusTolerance):
-                            currentBestRadius = dist + child.RadiusTolerance
+                        if (currentBestRadius > dist + 2**child.Size):
+                            currentBestRadius = dist + 2**child.Size
                         
             else:
                 candidateColours.extend(currentCandidate.Children)
@@ -74,7 +69,7 @@ class SearchablePixelSpace(PixelList):
         return candidateColours
 
         
-    def GetBestPixelForColour(self, (targetR,targetG,targetB)):
+    def GetBestPixelForColour(self, (targetR,targetG,targetB), intervalCount):
         candidateList = self.MakeCandidateList((targetR, targetG, targetB))
        
         ''' # Buckets - specifically walking through them
@@ -93,20 +88,17 @@ class SearchablePixelSpace(PixelList):
             #end while
         '''
 
-        # We've now traversed through the buckets to arrive at pixel/colour lists - 
-        #   if we have no pixel/colours remaining, something's gone wrong.
-        if (len(candidateList) == 0):
-            pass
         # Find the best candidate amongst the candidates we just fetched from the buckets
         currentBestRadius = MAXINT
-        currentBestCandidate = [-1,-1,-1,-1,-1]
+        currentBestCandidate = []
         
         random.shuffle(candidateList)
         
-        for (R,G,B,x,y) in candidateList:
-            distToTarget = sqrt((targetR - R)**2 +
-                                (targetG - G)**2 + 
-                                (targetB - B)**2 )
+        for (R,G,B,x,y,intervalAdded) in candidateList:
+            distToTarget = (sqrt((targetR - R)**2 +
+                                 (targetG - G)**2 + 
+                                 (targetB - B)**2) -
+                            (intervalCount - intervalAdded))
             if ( distToTarget < currentBestRadius or
                 (distToTarget == currentBestRadius and
                   GetHueDist((targetR,targetG,targetB), (R,G,B)) <
@@ -114,19 +106,16 @@ class SearchablePixelSpace(PixelList):
          
                 # This colour is, so far, closer in distance, or equal in distance and closer in 
                 #   hue, to the target colour.
-                currentBestCandidate = [R,G,B,x,y]
+                currentBestCandidate = [R,G,B,x,y,intervalAdded]
                 currentBestRadius = distToTarget
-                
-        # Make sure we have a valid best candidate
-#        assert ( currentBestCandidate != [-1,-1,-1,-1,-1] )
         
         return currentBestCandidate
         
-    def MarkPixelAsTaken(self, (newR, newG, newB),(R,G,B,x,y)):
-        RemoveColour(self.ColourBucket, (R,G,B),(x,y))
+    def MarkPixelAsTaken(self, (newR, newG, newB),(R,G,B,x,y,intervalAdded)):
+        RemoveColour(self.ColourBucket, (R,G,B,x,y,intervalAdded))
         self[x][y] = [newR, newG, newB, -1]
         
-    def UpdateNeighbours(self, x=-1, y=-1):
+    def UpdateNeighbours(self, x=-1, y=-1, intervalCount = 1):
         '''
         Called to update all neighbours in the vicinity of a pixel; each neighbouring
         pixel will have it's target (ideal) colour updated, and will be added to the 
@@ -154,25 +143,11 @@ first coordinates to update from."
                 self[newx][newy][3] != -1):
                                     
                 # Update the target colour of this neighbouring pixel
-                self.UpdatePixelTarget(newx, newy, x, y, canAdd)
+                self.UpdatePixelTarget(newx, newy, x, y, canAdd*intervalCount)
 
-    def NeighbourCoordinateGeneratorNarrow(self, x, y):
-        '''
-        Yield the 4 immediately adjacent pixels
-        '''
-        for newx,newy in ((x+1,y),(x-1,y),(x,y+1),(x,y-1)):
-            yield (newx, newy, True)
-                                                      
-    def NeighbourCoordinateGeneratorBroad(self, x, y):
-        '''
-        Yield neighbouring pixels in a 5x5 square around the central pixel
-        '''
-        for newx, newy, dx, dy in ((x+dx,y+dy, dx, dy) for dy in range(-2,2) for dx in range(-2,2) if (not (dx == 0 and dy == 0) and abs(dx)+abs(dy) != 4)):
-            yield (newx,newy,abs(dy)+abs(dx) == 1)
-                
-    def UpdatePixelTarget(self, updateX, updateY, controllingX, controllingY, canAdd):
+    def UpdatePixelTarget(self, updateX, updateY, controllingX, controllingY, intervalCount):
         
-        oldR, oldG, oldB, NeighbourCounter, HasBeenAdded = self[updateX][updateY]
+        oldR, oldG, oldB, NeighbourCounter, intervalAdded = self[updateX][updateY]
         
         controlR, controlG, controlB = self[controllingX][controllingY][0:3]
         
@@ -191,11 +166,24 @@ first coordinates to update from."
        
         NeighbourCounter += 1
                     
-        if ( canAdd and not HasBeenAdded):
-            AddColour(self.ColourBucket, (newR, newG, newB), (updateX, updateY))
-            self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, 1] 
-        elif (HasBeenAdded):
-            UpdateColour(self.ColourBucket, (oldR, oldG, oldB), (newR, newG, newB), (updateX, updateY))
-            self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, 1]
+        if ( intervalCount and not intervalAdded):
+            AddColour(self.ColourBucket, (newR, newG, newB, updateX, updateY, intervalCount))
+            self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, intervalCount] 
+        elif (intervalAdded):
+            UpdateColour(self.ColourBucket, (oldR, oldG, oldB, newR, newG, newB, updateX, updateY, intervalAdded))
+            self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, intervalAdded]
         else:
             self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, 0]
+
+def CircularNeighbourGenerator(radius):
+    '''
+    Yield the 4 immediately adjacent pixels
+    '''
+    def CircularNeighbourGeneratorWithRadius(x,y):
+        for newx, newy, dx, dy in ((x+dx,y+dy, dx, dy) 
+                                   for dy in range(-radius,radius) 
+                                   for dx in range(-radius,radius) 
+                                   if (not (dx == 0 and dy == 0) 
+                                       and abs(dx)+abs(dy) <= 1.5*radius)):
+            yield (newx,newy,abs(dy)+abs(dx) == 1)
+    return CircularNeighbourGeneratorWithRadius

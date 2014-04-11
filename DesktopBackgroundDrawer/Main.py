@@ -18,11 +18,11 @@ def MakeImage(image, height, colourBits, FileName):
     png.from_array(image.FlatRows(), "RGB", {"height":height,"bitdepth":colourBits}).save(FileName)
 
     
-def SteppedSortedColourList():
+def SteppedSatSortedHueColourList():
     allColours = [(R,G,B)
                     for B in xrange(2**colourBits) 
                     for G in xrange(2**colourBits)
-                    for R in xrange(2**colourBits)]
+                    for R in xrange(2**colourBits)] * colourReuse
     lowSatColours = []
     highSatColours = []
     for colour in allColours:
@@ -40,41 +40,73 @@ def SteppedSortedColourList():
     assert len(highSatColours) == len(allColours)
     return highSatColours
 
-def SortedColourList():
-    allColours = deque(sorted(
-                        [(R,G,B) for B in xrange(2**colourBits) 
-                                 for G in xrange(2**colourBits)
-                                 for R in xrange(2**colourBits)],
-                       lambda RGB1,RGB2 : cmp(GetHue(RGB1), GetHue(RGB2))))
+def IsInHueRangePredicate(minHue, maxHue):
+    if minHue < maxHue:
+        return lambda x: ((x < maxHue) and (x >= minHue))
+    if minHue > maxHue:
+        return lambda x: ((x < maxHue) or (x >= minHue))
+    if minHue == maxHue: 
+        return lambda x: True
+        
 
-    rotateIndex = random.randint(0,2**colourBits-1)
-    
-    allColours.rotate(rotateIndex)
-    return allColours
+def SortedHueColourList():
+    startingHue = random.randint(0,360)
+    hueIterations = max(1, int((colourReuse * 2**(3*colourBits))/(2**18)))
+    hueWalkDistance = 360.0 / hueIterations
+    minHue = startingHue
+    maxHue = ( startingHue + hueWalkDistance ) % 360.0
+    for i in xrange(hueIterations):
+        print "\nMaking the list of which colours will be used next. (List iteration " + str(i+1) + ")..."
+        isInRange = IsInHueRangePredicate(minHue, maxHue)
+        colourSelection = deque(sorted([(R,G,B) 
+                                  for B in xrange(2**colourBits) 
+                                  for G in xrange(2**colourBits)
+                                  for R in xrange(2**colourBits)
+                                  if (isInRange(GetHue((R,G,B))))]* colourReuse,
+                           lambda RGB1,RGB2 : cmp(GetHue(RGB1), GetHue(RGB2))))
+        if hueIterations == 1:
+            colourSelection.rotate(randint(0,len(colourSelection)-1))
+        print "    Done."
+        for colour in colourSelection: 
+            yield colour
+        minHue = maxHue
+        maxHue = ( maxHue + hueWalkDistance ) % 360.0
 
 def RandomColourList():
     allColours = [(R,G,B)
                     for B in xrange(2**colourBits) 
                     for G in xrange(2**colourBits)
-                    for R in xrange(2**colourBits)]
+                    for R in xrange(2**colourBits)] * colourReuse
     
     random.shuffle(allColours)
     return deque(allColours)
 
-def SortedDivergingColourList():
-    randomHue = randint(0,360)
-    allColours = deque(sorted(
-                        [(R,G,B) for B in xrange(2**colourBits) 
-                                 for G in xrange(2**colourBits)
-                                 for R in xrange(2**colourBits)],
-                        
-                        lambda RGB1,RGB2 : cmp(abs(randomHue - GetHue(RGB1)), 
-                                              abs(randomHue - GetHue(RGB2)))))
-    return allColours
+def SortedDivergingHueColourList():
+    startingHue = random.randint(0,360)
+    hueIterations = max(1, int((colourReuse * 2**(3*colourBits))/(2**18)))
+    hueWalkDistance = 180.0 / hueIterations
+    minHueDiff = 0
+    maxHueDiff = ( startingHue + hueWalkDistance ) % 180.0
+    for i in xrange(hueIterations):
+        print "\nMaking the list of which colours will be used next. (List iteration " + str(i+1) + ")..."
+        colourSelection = sorted([(R,G,B) 
+                                for B in xrange(2**colourBits) 
+                                for G in xrange(2**colourBits)
+                                for R in xrange(2**colourBits)
+                                if ((GetHueDist((R,G,B), None, startingHue) < maxHueDiff) and
+                                    (GetHueDist((R,G,B), None, startingHue) >= minHueDiff))] * colourReuse,
+                            lambda RGB1,RGB2 : cmp(abs(startingHue - GetHue(RGB1)), 
+                                                   abs(startingHue - GetHue(RGB2))))
+        print "    Done."
+        for colour in colourSelection:
+            yield colour
+        minHueDiff = maxHueDiff
+        maxHueDiff = ( maxHueDiff + hueWalkDistance ) % 180.0
+            
 
 def GetColoursForGreedyPixels():    
     # Make a new searchable colour space
-    colourSpace = SearchableColourSpace(colourBits)
+    colourSpace = SearchableColourSpace(colourBits, colourReuse)
 
     # Insert one pixel from the list to the image in a random spot - place neighbours in PixelQueue
     image = GreedyPixelList(width, height)
@@ -100,8 +132,7 @@ def GetColoursForGreedyPixels():
         if(len(NearbyColours) <= 0):
             print "aaarg! ",
             pixel.printTarget()
-            print [x for x in colourSpace._searchSpace for x in x for x in x].count(-1)
-            png.from_array(image.FlatRows(), "RGB", {"height":height,"bitdepth":colourBits}).save("C:/temp/generate.png")
+            png.from_array(image.FlatRows(), "RGB", {"height":height,"bitdepth":colourBits}).save("C:/temp/30001/generate.png")
             raise Exception("Aaaerg!") 
 
 
@@ -123,67 +154,66 @@ def GetColoursForGreedyPixels():
         if (i%10000 == 0):
             print i, datetime.now()- StartTime
         if (i%imageInterval == 0):
-            MakeImageThread = threading.Thread(target = MakeImage, args=(image, height, colourBits, "C:/temp/3360/generate%(number)i.png" % {"number":i/imageInterval}))
+            MakeImageThread = threading.Thread(target = MakeImage, args=(image, height, colourBits, "C:/temp/30001/generate%(number)i.png" % {"number":i/imageInterval}))
             MakeImageThread.start()
     
 
-    MakeImage(image, height, colourBits, "C:/temp/3360/generate.png")
+    MakeImage(image, height, colourBits, "C:/temp/30001/generate.png")
 
 def GetPixelsForGreedyColours():
     # Make a new searchable pixels space
-    print "Making the pixel table and eating your memory"
+    print "\nInitializing the list of pixels, and eating your memory..."
     pixelSpace = SearchablePixelSpace(width, height, colourBits)
-    
+    print "    Done."
+
     # Make the big sorted list of colours 
     startx, starty = (randint(0,width-1),randint(0,height-1))
         
-    print "Making the list of colours to be used up"
-    colourQueue = SortedDivergingColourList()
+    colourQueue = SortedHueColourList()
     
-    firstR, firstG, firstB =  colourQueue.popleft()
+    firstR, firstG, firstB =  colourQueue.next()
         
-    print firstR, firstG, firstB 
-    
     pixelSpace[startx][starty] = (firstR, firstG, firstB, -1)
     pixelSpace.UpdateNeighbours(startx, starty)
     
     i = 1
     
-    print "Giving colours a pixel to call home..."
+    print "\nGiving colours a pixel to call home..."
     
-    while( len(colourQueue) > 0):
-        R,G,B = colourQueue.popleft()
-        bestPixel = pixelSpace.GetBestPixelForColour((R,G,B), i)
+    for R,G,B in colourQueue:
+        bestPixel = pixelSpace.GetBestPixelForColour((R,G,B), (startx,starty), i)
         if (not bestPixel):
             break
         pixelSpace.MarkPixelAsTaken((R, G, B), bestPixel)
         pixelSpace.UpdateNeighbours(bestPixel[3], bestPixel[4], i)
  
         if (i%10000 == 0):
-            print i, datetime.now()- StartTime
+            print "    "+str(i/1000)+"k pixels finished. ", datetime.now()- StartTime, "elapsed." 
         if (i%imageInterval == 0):
             MakeImageThread = threading.Thread(target = MakeImage, args=(pixelSpace, height, colourBits, "C:/temp/2generate"+str(i/imageInterval)+".png"))
             MakeImageThread.start()
         i += 1
         
     MakeImage(pixelSpace, height, colourBits, "C:/temp/2generate.png")
+    print "Done! This all took", datetime.now() - StartTime
+
     
 def TimeMe():
 
-    GetPixelsForGreedyColours()
+    GetColoursForGreedyPixels()
     
 if __name__ == '__main__':
 
     StartTime = datetime.now()
     
     colourBits = 8
-    width = 1050
-    height = 3320
+    colourReuse = 1
+    width = 3000
+    height = 3000
     imageInterval = width*height/128
-    OutputFileName = "C:/temp/3360/generate.png"
-    cProfile.run("TimeMe()")
-    GetPixelsForGreedyColours()
 
-    print "Done! I took", datetime.now() - StartTime
+    assert (width * height <= colourReuse * 2**(3*colourBits))
+
+    GetPixelsForGreedyColours()
 
     

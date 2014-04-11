@@ -13,13 +13,14 @@ class SearchableColourSpace(object):
     '''
 
 
-    def __init__(self, colourBits):
+    def __init__(self, colourBits, colourReuse):
         '''
         Constructor
         '''
-        self._searchSpace = [[[-1 for x in xrange(2**colourBits)]  # @UnusedVariable
-                                 for x in xrange(2**colourBits)]  # @UnusedVariable
-                                 for x in xrange(2**colourBits)]  # @UnusedVariable
+        self._searchSpace = [[[-colourReuse 
+                               for x in xrange(2**colourBits)]  # @UnusedVariable
+                               for x in xrange(2**colourBits)]  # @UnusedVariable
+                               for x in xrange(2**colourBits)]  # @UnusedVariable
         self._width = 2**colourBits
         
 
@@ -28,11 +29,7 @@ class SearchableColourSpace(object):
             self._searchAllRGB()
         else:
             while ( self._searchRadius < self._width and len(self._found) == 0 ):
-    
-                # Set the current search radius, increment the next search radius
-                self._searchRadius = self._nextSearchRadius
-                self._nextSearchRadius = self._searchRadius + 1
-    
+        
                 # Set this iteration's max/min RGB values - these correspond to planes which
                 #    will be searched later.
                 
@@ -57,6 +54,10 @@ class SearchableColourSpace(object):
                     self._searchMaxB()
                 if (B - self._searchRadius >= 0):
                     self._searchMinB()
+                    
+                # Set the current search radius, increment the next search radius
+                self._searchRadius = self._nextSearchRadius
+                self._nextSearchRadius = self._searchRadius + 1
 
     def GetNearestNeighbours(self, (R, G, B)):
         
@@ -80,37 +81,40 @@ class SearchableColourSpace(object):
         # DEBUG: print "Target is",R,G,B
         
         self.FindFirstNeighbours(R, G, B)
-            
+
         while (len(self._found) == 0):
             print "AAACH!", R,G,B
+            self._entriesToUpdate = []
             self.FindFirstNeighbours(R, G, B, ForceExhaustive = True)
         
         averageRadiusFromFoundToCenter = sqrt((R - self._found[0][0])**2 + 
                                               (G - self._found[0][1])**2 + 
                                               (B - self._found[0][2])**2)
 
-        self._searchSpace[R][G][B] = averageRadiusFromFoundToCenter
+        if (self._searchSpace[R][G][B] >= 0):
+             self._searchSpace[R][G][B] = averageRadiusFromFoundToCenter
 
         for (curR, curG, curB) in self._entriesToUpdate:
             curRadius = sqrt((curR - R)**2 + 
                              (curG - G)**2 + 
                              (curB - B)**2)
             
-            self._searchSpace[curR][curG][curB] = max(self._searchSpace[curR][curG][curB], 
-                                                      averageRadiusFromFoundToCenter - curRadius)
+            if (self._searchSpace[curR][curG][curB] >= 0):
+                self._searchSpace[curR][curG][curB] = max(self._searchSpace[curR][curG][curB], 
+                                                          averageRadiusFromFoundToCenter - curRadius)
         
         # DEBUG: print "Found:", self._found,"at:", averageRadiusFromFoundToCenter 
-        
+
         return self._found
             
     def FlagColourAsUsed(self, R=0, G=0, B=0, RGB=None):
         '''
-        Marks a colour as having been used 
+        Marks a colour as having been used once
         '''
         if (RGB is not None):
             R,G,B = RGB
-        self._searchSpace[R][G][B] = 0
-
+        self._searchSpace[R][G][B] += 1
+        
     def _processEntry(self, R, G, B):
         '''
         Do not call me manually
@@ -121,14 +125,14 @@ class SearchableColourSpace(object):
                              (self._idealG - G)**2 + 
                              (self._idealB - B)**2)
         
-        if (currentItem == -1):
+        if (currentItem < 0):
             if ( currentRadius < self._bestFoundItemRadius ):
                 self._found = [(R,G,B)]
                 self._bestFoundItemRadius = currentRadius
             elif (currentRadius == self._bestFoundItemRadius ):
                 self._found.append((R,G,B))
         else:
-            self._nextSearchRadius = max(self._nextSearchRadius, currentItem - currentRadius -1 )
+            self._nextSearchRadius = max(self._nextSearchRadius, currentItem - currentRadius)
             self._entriesToUpdate.append((R,G,B))
             
     def _searchAllRGB(self):

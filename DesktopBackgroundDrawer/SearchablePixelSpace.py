@@ -24,7 +24,7 @@ class SearchablePixelSpace(PixelList):
         PixelList.__init__(self, width, height, 5)
 
         # Initialize the methods we'll use for pixel neighbour grabbing etc
-        self.NeighbourListGenerator = CircularNeighbourGenerator(3)
+        self.NeighbourListGenerator = CircularNeighbourGenerator(1)
                 
         # n, (Where 2**n is the size of our smallest buckets
         self.BucketDim = max(colourBits-6, 1)
@@ -72,24 +72,8 @@ class SearchablePixelSpace(PixelList):
         return candidateColours
 
         
-    def GetBestPixelForColour(self, (targetR,targetG,targetB), intervalCount):
+    def GetBestPixelForColour(self, (targetR,targetG,targetB), (startx, starty), intervalCount):
         candidateList = self.MakeCandidateList((targetR, targetG, targetB))
-       
-        ''' # Buckets - specifically walking through them
-        else:
-            for ShellList in self.ExpandingBucketShellList((targetR, targetG, targetB)):
-                for RGB in ShellList:
-                    candidate = self.ColourBucket.GetBucketNearest(RGB)
-                    if candidate.Population > 0:
-                        for colour in candidate.Colours:
-                            candidateList.append(colour)
-                if len(candidateList) > 0: 
-                    break                
-                        # end for
-                    # end if
-                # end for 
-            #end while
-        '''
 
         # Find the best candidate amongst the candidates we just fetched from the buckets
         currentBestRadius = MAXINT
@@ -98,10 +82,9 @@ class SearchablePixelSpace(PixelList):
         random.shuffle(candidateList)
         
         for (R,G,B,x,y,intervalAdded) in candidateList:
-            distToTarget = (sqrt((targetR - R)**2 +
-                                 (targetG - G)**2 + 
-                                 (targetB - B)**2) -
-                            (intervalCount - intervalAdded))
+            distToTarget = ((targetR - R)**2 +
+                            (targetG - G)**2 + 
+                            (targetB - B)**2)
             if ( distToTarget < currentBestRadius or
                 (distToTarget == currentBestRadius and
                   GetHueDist((targetR,targetG,targetB), (R,G,B)) <
@@ -173,7 +156,7 @@ first coordinates to update from."
             AddColour(self.ColourBucket, (newR, newG, newB, updateX, updateY, intervalCount))
             self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, intervalCount] 
         elif (intervalAdded):
-            UpdateColour(self.ColourBucket, (oldR, oldG, oldB, newR, newG, newB, updateX, updateY, intervalAdded))
+            UpdateColour(self.ColourBucket, (oldR, oldG, oldB), (newR, newG, newB), (updateX, updateY), intervalAdded)
             self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, intervalAdded]
         else:
             self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, 0]
@@ -184,9 +167,9 @@ def CircularNeighbourGenerator(radius):
     '''
     def CircularNeighbourGeneratorWithRadius(x,y):
         for newx, newy, dx, dy in ((x+dx,y+dy, dx, dy) 
-                                   for dy in range(-radius,radius) 
-                                   for dx in range(-radius,radius) 
+                                   for dy in range(-radius,radius+1) 
+                                   for dx in range(-radius,radius+1) 
                                    if (not (dx == 0 and dy == 0) 
                                        and abs(dx)+abs(dy) <= 1.5*radius)):
-            yield (newx,newy,abs(dy)+abs(dx) == 1)
+            yield (newx,newy,(abs(dy)+abs(dx) == 1))
     return CircularNeighbourGeneratorWithRadius

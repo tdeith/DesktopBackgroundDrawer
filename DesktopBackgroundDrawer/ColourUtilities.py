@@ -34,9 +34,14 @@ def GetLight(colour, bits):
     return (cmax + cmin)/2
 
 # Get's the angular distance between two hues
-def GetHueDist(colour1, colour2):
-    diff = abs(GetHue(colour1) - GetHue(colour2))
-
+def GetHueDist(RGB1, RGB2 = None, colour = None):
+    if RGB2 is not None:
+        diff = abs(GetHue(RGB1) - GetHue(RGB2))
+    elif colour is not None:
+        diff = abs(GetHue(RGB1) - colour)
+    else:
+        diff = GetHue(RGB1)
+    
     if (diff > 180):
         diff = abs(diff - 360)
           

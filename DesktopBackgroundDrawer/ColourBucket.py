@@ -9,10 +9,15 @@ class ColourBucket(object):
     classdocs
     '''
 
-    def __init__(self, midR, midG, midB, size, limit):
+
+
+    def __init__(self, midR, midG, midB, size, limit, parent = None):
         '''
         Constructor
         '''
+        
+        self.Parent = parent
+        self.Size = size
         
         self.MidR = midR
         self.MidG = midG
@@ -24,49 +29,48 @@ class ColourBucket(object):
         self.Children = []
         self.HasChildren = False
         
-        # The (very very approximate) center-to-vertice distance, with sqrt(3) approximated to 2
-        self.Size = size
+        # The center-to-vertice distance, with sqrt(3) approximated to 1.733.
+        self.RadiusTolerance = 2**size
         
-        CreateNextChildren(self, midR, midG, midB, size, limit)
-
-def CreateNextChildren(node, midR, midG, midB, size, limit):
-    if size >= limit:
-        midSpan = 2.0 ** (size - 2)
-        node.HasChildren = True
-        try:
-            node._indexedChildren = [ColourBucket(midR + dR, midG + dG, midB + dB, 
-                    size - 1, limit) for 
-                dB in [-midSpan, midSpan] for 
-                dG in [-midSpan, midSpan] for 
-                dR in [-midSpan, midSpan]]
-        except MemoryError:
-            print "Child ", node.Size
-            print "Centered at ", node.MidB, node.MidG, node.MidR
-            raise MemoryError
+        if size >= limit:
+            AddChildren(self, midR, midG, midB, size, limit)
             
-def AddColour (node, (R, G, B,x,y,intervalAdded)):
+def AddChildren(Node, midR, midG, midB, size, limit):
+    midSpan = 2.0 ** (size - 2)
+    Node.HasChildren = True
+    Node._indexedChildren = [ColourBucket(midR + dR, 
+                                          midG + dG, 
+                                          midB + dB, 
+                                          size - 1, 
+                                          limit, 
+                                          Node) 
+                                 for dB in [-midSpan, midSpan] 
+                                 for dG in [-midSpan, midSpan] 
+                                 for dR in [-midSpan, midSpan]]
+            
+def AddColour (node, (R, G, B, x, y, intervalCount)):
     rCoord = R>=node.MidR
     gCoord = G>=node.MidG
     bCoord = B>=node.MidB
     
     if ( node.HasChildren ):
-        AddColour(node._indexedChildren[rCoord + 2*gCoord + 4*bCoord], (R,G,B,x,y,intervalAdded))
+        AddColour(node._indexedChildren[rCoord + 2*gCoord + 4*bCoord], (R, G, B, x, y, intervalCount))
     else:
-        node.Children.append([R,G,B,x,y,intervalAdded])
+        node.Children.append([R,G,B,x,y,intervalCount])
         
     if (node.Population == 0 and node.Parent is not None):
         node.Parent.Children.append(node)
     node.Population += 1
 
-def RemoveColour (node, (R, G, B,x,y,intervalAdded)): 
+def RemoveColour (node, (R, G, B, x, y,intervalCount)): 
     rCoord = R>=node.MidR
     gCoord = G>=node.MidG
     bCoord = B>=node.MidB
     
     if ( node.HasChildren ):
-        RemoveColour(node._indexedChildren[rCoord + 2*gCoord + 4*bCoord], (R,G,B,x,y,intervalAdded))
+        RemoveColour(node._indexedChildren[rCoord + 2*gCoord + 4*bCoord], (R, G, B, x, y, intervalCount))
     else:
-        node.Children.remove([R,G,B,x,y,intervalAdded])
+        node.Children.remove([R,G,B,x,y,intervalCount])
         
     node.Population -= 1
     if (node.Population == 0 and node.Parent is None):
@@ -75,7 +79,7 @@ def RemoveColour (node, (R, G, B,x,y,intervalAdded)):
     if (node.Population == 0 and node.Parent is not None):
         node.Parent.Children.remove(node)
     
-def UpdateColour (node, (oldR,oldG,oldB, newR,newG,newB, x,y, intervalAdded)):
+def UpdateColour (node, (oldR,oldG,oldB), (newR,newG,newB), (x,y), intervalCount):
     oldRCoord = oldR>=node.MidR
     oldGCoord = oldG>=node.MidG
     oldBCoord = oldB>=node.MidB
@@ -86,10 +90,10 @@ def UpdateColour (node, (oldR,oldG,oldB, newR,newG,newB, x,y, intervalAdded)):
 
     if ( node.HasChildren ): 
         if ((oldRCoord, oldGCoord, oldBCoord) == (newRCoord, newGCoord, newBCoord)):
-            UpdateColour(node._indexedChildren[oldRCoord+2*oldGCoord+4*oldBCoord], (oldR,oldG,oldB,newR,newG,newB,x,y,intervalAdded))
+            UpdateColour(node._indexedChildren[oldRCoord+2*oldGCoord+4*oldBCoord], (oldR,oldG,oldB), (newR,newG,newB), (x,y), intervalCount)
         else: 
-            RemoveColour(node._indexedChildren[oldRCoord+2*oldGCoord+4*oldBCoord], (oldR,oldG,oldB,x,y,intervalAdded))
-            AddColour(node._indexedChildren[newRCoord+2*newGCoord+4*newBCoord], (newR,newG,newB,x,y,intervalAdded))
+            RemoveColour(node._indexedChildren[oldRCoord+2*oldGCoord+4*oldBCoord], (oldR,oldG,oldB, x, y, intervalCount))
+            AddColour(node._indexedChildren[newRCoord+2*newGCoord+4*newBCoord], (newR,newG,newB, x, y, intervalCount))
     else:
-        node.Children.remove([oldR,oldG,oldB,x,y,intervalAdded])
-        node.Children.append([newR,newG,newB,x,y,intervalAdded])
+        node.Children.remove([oldR,oldG,oldB,x,y,intervalCount])
+        node.Children.append([newR,newG,newB,x,y,intervalCount])

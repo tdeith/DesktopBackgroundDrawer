@@ -17,7 +17,6 @@ import threading
 def MakeImage(image, height, colourBits, FileName):
     png.from_array(image.FlatRows(), "RGB", {"height":height,"bitdepth":colourBits}).save(FileName)
 
-    
 def SteppedSatSortedHueColourList():
     allColours = [(R,G,B)
                     for B in xrange(2**colourBits) 
@@ -51,7 +50,7 @@ def IsInHueRangePredicate(minHue, maxHue):
 
 def SortedHueColourList():
     startingHue = random.randint(0,360)
-    hueIterations = max(1, int((colourReuse * 2**(3*colourBits))/(2**18)))
+    hueIterations = max(1, int((colourReuse * 2**(3*colourBits))/(2**21)))
     hueWalkDistance = 360.0 / hueIterations
     minHue = startingHue
     maxHue = ( startingHue + hueWalkDistance ) % 360.0
@@ -132,7 +131,7 @@ def GetColoursForGreedyPixels():
         if(len(NearbyColours) <= 0):
             print "aaarg! ",
             pixel.printTarget()
-            png.from_array(image.FlatRows(), "RGB", {"height":height,"bitdepth":colourBits}).save("C:/temp/30001/generate.png")
+            png.from_array(image.FlatRows(), "RGB", {"height":height,"bitdepth":colourBits}).save(fileName+".png")
             raise Exception("Aaaerg!") 
 
 
@@ -154,11 +153,11 @@ def GetColoursForGreedyPixels():
         if (i%10000 == 0):
             print i, datetime.now()- StartTime
         if (i%imageInterval == 0):
-            MakeImageThread = threading.Thread(target = MakeImage, args=(image, height, colourBits, "C:/temp/30001/generate%(number)i.png" % {"number":i/imageInterval}))
+            MakeImageThread = threading.Thread(target = MakeImage, args=(image, height, colourBits, fileName+"_"+str(i/imageInterval)+".png"))
             MakeImageThread.start()
     
 
-    MakeImage(image, height, colourBits, "C:/temp/30001/generate.png")
+    MakeImage(image, height, colourBits, fileName+".png")
 
 def GetPixelsForGreedyColours():
     # Make a new searchable pixels space
@@ -190,17 +189,19 @@ def GetPixelsForGreedyColours():
         if (i%10000 == 0):
             print "    "+str(i/1000)+"k pixels finished. ", datetime.now()- StartTime, "elapsed." 
         if (i%imageInterval == 0):
-            MakeImageThread = threading.Thread(target = MakeImage, args=(pixelSpace, height, colourBits, "C:/temp/2generate"+str(i/imageInterval)+".png"))
+            MakeImageThread = threading.Thread(target = MakeImage, args=(pixelSpace, height, colourBits, fileName+"_"+str(i/imageInterval)+".png"))
             MakeImageThread.start()
         i += 1
         
-    MakeImage(pixelSpace, height, colourBits, "C:/temp/2generate.png")
+    pixelSpace.OnFinishedSearching()
+        
+    MakeImage(pixelSpace, height, colourBits, fileName+".png")
     print "Done! This all took", datetime.now() - StartTime
 
     
 def TimeMe():
 
-    GetColoursForGreedyPixels()
+    GetPixelsForGreedyColours()
     
 if __name__ == '__main__':
 
@@ -208,12 +209,13 @@ if __name__ == '__main__':
     
     colourBits = 8
     colourReuse = 1
-    width = 3000
-    height = 3000
-    imageInterval = width*height/128
+    width = 1050
+    height = 3360
+    imageInterval = width*height/1
+    fileName = "D:/temp/"+str(width)+"x"+str(height)
 
     assert (width * height <= colourReuse * 2**(3*colourBits))
 
-    GetPixelsForGreedyColours()
+    cProfile.run("TimeMe()")
 
     

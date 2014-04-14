@@ -5,7 +5,7 @@ Created on Apr 3, 2014
 '''
 
 from PixelList import PixelList
-from ColourBucket import ColourBucket, AddColour, RemoveColour, UpdateColour
+import ColourBucket
 from ColourUtilities import GetHueDist
 from xmlrpclib import MAXINT
 from math import sqrt
@@ -39,7 +39,7 @@ class SearchablePixelSpace(PixelList):
         self.BucketWidth = 2**(self.ColourBits - self.BucketDim)
 
         # Create the buckets of colours and corresponding pixels
-        self.ColourBucket = ColourBucket(2**(colourBits-1), 
+        self.ColourBucket = ColourBucket.ColourBucket(2**(colourBits-1), 
                                          2**(colourBits-1), 
                                          2**(colourBits-1), 
                                          colourBits, 
@@ -98,7 +98,7 @@ class SearchablePixelSpace(PixelList):
         return currentBestCandidate
         
     def MarkPixelAsTaken(self, (newR, newG, newB),(R,G,B,x,y,intervalAdded)):
-        RemoveColour(self.ColourBucket, (R,G,B,x,y,intervalAdded))
+        ColourBucket.RemoveColour(self.ColourBucket, (R,G,B,x,y,intervalAdded))
         self[x][y] = [newR, newG, newB, -1]
         
     def UpdateNeighbours(self, x=-1, y=-1, intervalCount = 1):
@@ -153,13 +153,16 @@ first coordinates to update from."
         NeighbourCounter += 1
                     
         if ( intervalCount and not intervalAdded):
-            AddColour(self.ColourBucket, (newR, newG, newB, updateX, updateY, intervalCount))
+            ColourBucket.AddColour(self.ColourBucket, (newR, newG, newB, updateX, updateY, intervalCount))
             self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, intervalCount] 
         elif (intervalAdded):
-            UpdateColour(self.ColourBucket, (oldR, oldG, oldB), (newR, newG, newB), (updateX, updateY), intervalAdded)
+            ColourBucket.UpdateColour(self.ColourBucket, (oldR, oldG, oldB), (newR, newG, newB), (updateX, updateY), intervalAdded)
             self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, intervalAdded]
         else:
             self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, 0]
+            
+    def OnFinishedSearching(self):
+        ColourBucket.DeleteNode(self.ColourBucket)
 
 def CircularNeighbourGenerator(radius):
     '''

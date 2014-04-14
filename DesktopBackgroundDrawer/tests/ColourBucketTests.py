@@ -48,7 +48,7 @@ class Test(unittest.TestCase):
         ColourBucket.AddColour(bucket, (newR, newG, newB, x, y, 0))
         ColourBucket.AddColour(bucket, (newR, newG, newB, x, y, 0))
         ColourBucket.AddColour(bucket, (newR, newG, newB, x, y, 0))
-        assert
+
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testBucketCreation']
     unittest.main()

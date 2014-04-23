@@ -46,3 +46,11 @@ def GetHueDist(RGB1, RGB2 = None, colour = None):
         diff = abs(diff - 360)
           
     return diff
+
+def IsInHueRange(minHue, maxHue):
+    if minHue < maxHue:
+        return lambda x: ((x < maxHue) and (x >= minHue))
+    if minHue > maxHue:
+        return lambda x: ((x < maxHue) or (x >= minHue))
+    if minHue == maxHue: 
+        return lambda x: True

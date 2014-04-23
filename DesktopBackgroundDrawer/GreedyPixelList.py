@@ -94,19 +94,19 @@ first coordinates to update from."
         
         R, G, B, NeighbourCounter = self[updateX][updateY]
         
-        newR, newG, newB = self[controllingX][controllingY][0:3]
+        R1, neR2newB = self[controllingX][controllingY][0:3]
         
         if (NeighbourCounter == -1):
             # This pixel has already selected a colour; we don't want to edit its target
             return
         elif (NeighbourCounter == 0 ):
             # This is the first neighbour this pixel has found
-            R,G,B = newR, newG, newB
+            R,G,B = R1, neR2newB
         else:  
             # Update this pixel's R,G,B values to 
-            R = float(R * NeighbourCounter + newR)/(NeighbourCounter + 1)
-            G = float(G * NeighbourCounter + newG)/(NeighbourCounter + 1)
-            B = float(B * NeighbourCounter + newB)/(NeighbourCounter + 1)
+            R = float(R * NeighbourCounter + R1)/(NeighbourCounter + 1)
+            G = float(G * NeighbourCounter + G1)/(NeighbourCounter + 1)
+            B = float(B * NeighbourCounter + B1)/(NeighbourCounter + 1)
             
     
         NeighbourCounter += 1

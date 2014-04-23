@@ -92,7 +92,7 @@ class SearchableColourSpace(object):
                                               (B - self._found[0][2])**2)
 
         if (self._searchSpace[R][G][B] >= 0):
-             self._searchSpace[R][G][B] = averageRadiusFromFoundToCenter
+            self._searchSpace[R][G][B] = averageRadiusFromFoundToCenter
 
         for (curR, curG, curB) in self._entriesToUpdate:
             curRadius = sqrt((curR - R)**2 + 
@@ -114,6 +114,11 @@ class SearchableColourSpace(object):
         if (RGB is not None):
             R,G,B = RGB
         self._searchSpace[R][G][B] += 1
+        
+    def ColourIsUsed(self, R=0, G=0, B=0, RGB=None):
+        if (RGB is not None):
+            R,G,B = RGB
+        return self._searchSpace[R][G][B] < 0 
         
     def _processEntry(self, R, G, B):
         '''

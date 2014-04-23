@@ -7,101 +7,15 @@ Created on Mar 10, 2014
 from GreedyPixelList import *               # @UnusedWildImport
 from SearchableColourSpace import *         # @UnusedWildImport
 from SearchablePixelSpace import *          # @UnusedWildImport
-from ColourUtilities import GetHue, GetHueDist, GetSat
 from datetime import datetime
 from random import randint
+import ColourLists
 import png
 import cProfile
 import threading
 
 def MakeImage(image, height, colourBits, FileName):
     png.from_array(image.FlatRows(), "RGB", {"height":height,"bitdepth":colourBits}).save(FileName)
-
-def SteppedSatSortedHueColourList():
-    allColours = [(R,G,B)
-                    for B in xrange(2**colourBits) 
-                    for G in xrange(2**colourBits)
-                    for R in xrange(2**colourBits)] * colourReuse
-    lowSatColours = []
-    highSatColours = []
-    for colour in allColours:
-        if ( GetSat(colour, colourBits) > 0.15):
-            highSatColours.append(colour)
-        else:
-            lowSatColours.append(colour)
-    highSatColours = deque(sorted(highSatColours, 
-                                  lambda RGB1,RGB2 : cmp(GetHue(RGB1), GetHue(RGB2))))
-    rotateIndex = random.randint(0,len(highSatColours)-1)
-    
-    random.shuffle(lowSatColours)
-    highSatColours.rotate(rotateIndex)
-    highSatColours.append(deque(lowSatColours))
-    assert len(highSatColours) == len(allColours)
-    return highSatColours
-
-def IsInHueRangePredicate(minHue, maxHue):
-    if minHue < maxHue:
-        return lambda x: ((x < maxHue) and (x >= minHue))
-    if minHue > maxHue:
-        return lambda x: ((x < maxHue) or (x >= minHue))
-    if minHue == maxHue: 
-        return lambda x: True
-        
-
-def SortedHueColourList():
-    startingHue = random.randint(0,360)
-    hueIterations = max(1, int((colourReuse * 2**(3*colourBits))/(2**21)))
-    hueWalkDistance = 360.0 / hueIterations
-    minHue = startingHue
-    maxHue = ( startingHue + hueWalkDistance ) % 360.0
-    for i in xrange(hueIterations):
-        print "\nMaking the list of which colours will be used next. (List iteration " + str(i+1) + ")..."
-        isInRange = IsInHueRangePredicate(minHue, maxHue)
-        colourSelection = deque(sorted([(R,G,B) 
-                                  for B in xrange(2**colourBits) 
-                                  for G in xrange(2**colourBits)
-                                  for R in xrange(2**colourBits)
-                                  if (isInRange(GetHue((R,G,B))))]* colourReuse,
-                           lambda RGB1,RGB2 : cmp(GetHue(RGB1), GetHue(RGB2))))
-        if hueIterations == 1:
-            colourSelection.rotate(randint(0,len(colourSelection)-1))
-        print "    Done."
-        for colour in colourSelection: 
-            yield colour
-        minHue = maxHue
-        maxHue = ( maxHue + hueWalkDistance ) % 360.0
-
-def RandomColourList():
-    allColours = [(R,G,B)
-                    for B in xrange(2**colourBits) 
-                    for G in xrange(2**colourBits)
-                    for R in xrange(2**colourBits)] * colourReuse
-    
-    random.shuffle(allColours)
-    return deque(allColours)
-
-def SortedDivergingHueColourList():
-    startingHue = random.randint(0,360)
-    hueIterations = max(1, int((colourReuse * 2**(3*colourBits))/(2**18)))
-    hueWalkDistance = 180.0 / hueIterations
-    minHueDiff = 0
-    maxHueDiff = ( startingHue + hueWalkDistance ) % 180.0
-    for i in xrange(hueIterations):
-        print "\nMaking the list of which colours will be used next. (List iteration " + str(i+1) + ")..."
-        colourSelection = sorted([(R,G,B) 
-                                for B in xrange(2**colourBits) 
-                                for G in xrange(2**colourBits)
-                                for R in xrange(2**colourBits)
-                                if ((GetHueDist((R,G,B), None, startingHue) < maxHueDiff) and
-                                    (GetHueDist((R,G,B), None, startingHue) >= minHueDiff))] * colourReuse,
-                            lambda RGB1,RGB2 : cmp(abs(startingHue - GetHue(RGB1)), 
-                                                   abs(startingHue - GetHue(RGB2))))
-        print "    Done."
-        for colour in colourSelection:
-            yield colour
-        minHueDiff = maxHueDiff
-        maxHueDiff = ( maxHueDiff + hueWalkDistance ) % 180.0
-            
 
 def GetColoursForGreedyPixels():    
     # Make a new searchable colour space
@@ -150,7 +64,7 @@ def GetColoursForGreedyPixels():
         
         image.UpdateNeighbours()
         i += 1
-        if (i%10000 == 0):
+        if (i%1000 == 0):
             print i, datetime.now()- StartTime
         if (i%imageInterval == 0):
             MakeImageThread = threading.Thread(target = MakeImage, args=(image, height, colourBits, fileName+"_"+str(i/imageInterval)+".png"))
@@ -168,7 +82,7 @@ def GetPixelsForGreedyColours():
     # Make the big sorted list of colours 
     startx, starty = (randint(0,width-1),randint(0,height-1))
         
-    colourQueue = SortedHueColourList()
+    colourQueue = ColourLists.SortedHueColourList(colourBits, colourReuse)
     
     firstR, firstG, firstB =  colourQueue.next()
         
@@ -198,6 +112,11 @@ def GetPixelsForGreedyColours():
     MakeImage(pixelSpace, height, colourBits, fileName+".png")
     print "Done! This all took", datetime.now() - StartTime
 
+def GetPixelsAndColoursForEachother():
+    print "\nInitializing the lists of pixels and colours, and eating your memory..."
+    pixelSpace = SearchablePixelSpace(width, height, colourBits)
+
+
     
 def TimeMe():
 
@@ -207,12 +126,12 @@ if __name__ == '__main__':
 
     StartTime = datetime.now()
     
-    colourBits = 8
+    colourBits = 4
     colourReuse = 1
-    width = 1050
-    height = 3360
+    width = 64
+    height = 64
     imageInterval = width*height/1
-    fileName = "D:/temp/"+str(width)+"x"+str(height)
+    fileName = "C:/temp/"+str(width)+"x"+str(height)
 
     assert (width * height <= colourReuse * 2**(3*colourBits))
 

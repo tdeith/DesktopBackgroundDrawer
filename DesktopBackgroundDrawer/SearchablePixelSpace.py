@@ -47,33 +47,8 @@ class SearchablePixelSpace(PixelList):
         
         self.AvailablePixels = set(())
         
-    def MakeCandidateList(self,(targetR,targetG,targetB)):
-        currentBestRadius = MAXINT
-        bucketList = []
-        candidateColours = []
-                
-        bucketList.append(self.ColourBucket)
-        while ( bucketList ):
-            currentCandidate = bucketList.pop()
-            if currentCandidate.HasChildren:
-                for child in currentCandidate.Children:
-                    dist = sqrt((targetR-child.MidR)**2+
-                                (targetG-child.MidG)**2+
-                                (targetB-child.MidB)**2)
-                    if (dist <= currentBestRadius):
-                        bucketList.extend(currentCandidate.Children)
-                        if (currentBestRadius > dist + 2**child.Size):
-                            currentBestRadius = dist + 2**child.Size
-                        
-            else:
-                candidateColours.extend(currentCandidate.Children)
-            # end if
-        #end while
-        return candidateColours
-
-        
     def GetBestPixelForColour(self, (targetR,targetG,targetB), (startx, starty), intervalCount):
-        candidateList = self.MakeCandidateList((targetR, targetG, targetB))
+        candidateList = MakeCandidateList(self.ColourBucket, (targetR, targetG, targetB))
 
         # Find the best candidate amongst the candidates we just fetched from the buckets
         currentBestRadius = MAXINT
@@ -97,9 +72,9 @@ class SearchablePixelSpace(PixelList):
         
         return currentBestCandidate
         
-    def MarkPixelAsTaken(self, (newR, newG, newB),(R,G,B,x,y,intervalAdded)):
+    def MarkPixelAsTaken(self, (R1, G1, B1),(R,G,B,x,y,intervalAdded)):
         ColourBucket.RemoveColour(self.ColourBucket, (R,G,B,x,y,intervalAdded))
-        self[x][y] = [newR, newG, newB, -1]
+        self[x][y] = [R1, G1, B1, -1]
         
     def UpdateNeighbours(self, x=-1, y=-1, intervalCount = 1):
         '''
@@ -142,24 +117,24 @@ first coordinates to update from."
             return
         elif ( NeighbourCounter == 0 ):
             # This is the first neighbour this pixel has found
-            newR, newG, newB = controlR, controlG, controlB
+            R1, G1, B1 = controlR, controlG, controlB
         else:  
             # Update this pixel's R,G,B values to 
-            newR = float(oldR * NeighbourCounter + controlR)/(NeighbourCounter + 1)
-            newG = float(oldG * NeighbourCounter + controlG)/(NeighbourCounter + 1)
-            newB = float(oldB * NeighbourCounter + controlB)/(NeighbourCounter + 1)
+            R1 = float(oldR * NeighbourCounter + controlR)/(NeighbourCounter + 1)
+            G1 = float(oldG * NeighbourCounter + controlG)/(NeighbourCounter + 1)
+            B1 = float(oldB * NeighbourCounter + controlB)/(NeighbourCounter + 1)
             
        
         NeighbourCounter += 1
                     
         if ( intervalCount and not intervalAdded):
-            ColourBucket.AddColour(self.ColourBucket, (newR, newG, newB, updateX, updateY, intervalCount))
-            self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, intervalCount] 
+            ColourBucket.AddColour(self.ColourBucket, (R1, G1, B1, updateX, updateY, intervalCount))
+            self[updateX][updateY] = [R1,G1,B1,NeighbourCounter, intervalCount] 
         elif (intervalAdded):
-            ColourBucket.UpdateColour(self.ColourBucket, (oldR, oldG, oldB), (newR, newG, newB), (updateX, updateY), intervalAdded)
-            self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, intervalAdded]
+            ColourBucket.UpdateColour(self.ColourBucket, (oldR, oldG, oldB), (R1, G1, B1), (updateX, updateY), intervalAdded)
+            self[updateX][updateY] = [R1,G1,B1,NeighbourCounter, intervalAdded]
         else:
-            self[updateX][updateY] = [newR,newG,newB,NeighbourCounter, 0]
+            self[updateX][updateY] = [R1,G1,B1,NeighbourCounter, 0]
             
     def OnFinishedSearching(self):
         ColourBucket.DeleteNode(self.ColourBucket)
@@ -176,3 +151,27 @@ def CircularNeighbourGenerator(radius):
                                        and abs(dx)+abs(dy) <= 1.5*radius)):
             yield (newx,newy,(abs(dy)+abs(dx) == 1))
     return CircularNeighbourGeneratorWithRadius
+
+def MakeCandidateList(bucket,(targetR,targetG,targetB)):
+    currentBestRadius = MAXINT
+    bucketList = []
+    candidateColours = []
+            
+    bucketList.append(bucket)
+    while ( bucketList ):
+        currentCandidate = bucketList.pop()
+        if currentCandidate.HasChildren:
+            for child in currentCandidate.Children:
+                dist = sqrt((targetR-child.MidR)**2+
+                            (targetG-child.MidG)**2+
+                            (targetB-child.MidB)**2)
+                if (dist <= currentBestRadius):
+                    bucketList.extend(currentCandidate.Children)
+                    if (currentBestRadius > dist + 2**child.Size):
+                        currentBestRadius = dist + 2**child.Size
+                    
+        else:
+            candidateColours.extend(currentCandidate.Children)
+        # end if
+    #end while
+    return candidateColours
